@@ -6,25 +6,15 @@
     <title>Elemental Blueprint</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Cinzel', 'serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Cinzel', 'serif'] },
                     colors: {
-                        dark: '#0f172a',
-                        card: '#1e293b',
-                        accent: '#8b5cf6',
-                        wood: '#10b981', // Green
-                        fire: '#ef4444', // Red
-                        earth: '#d97706', // Amber
-                        metal: '#94a3b8', // Slate
-                        water: '#3b82f6', // Blue
+                        dark: '#0f172a', card: '#1e293b', accent: '#8b5cf6',
+                        wood: '#10b981', fire: '#ef4444', earth: '#d97706', metal: '#94a3b8', water: '#3b82f6'
                     }
                 }
             }
@@ -32,13 +22,12 @@
     </script>
     <style>
         .element-bar { transition: width 1s ease-in-out; }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-dark text-gray-100 min-h-screen font-sans antialiased selection:bg-accent selection:text-white">
+<body class="bg-dark text-gray-100 min-h-screen font-sans antialiased">
     <div class="max-w-2xl mx-auto p-4 md:p-8">
-        <!-- Header -->
         <header class="mb-8 text-center cursor-pointer" onclick="window.location.href='/'">
             <h1 class="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2">
                 Elemental Blueprint
@@ -47,28 +36,46 @@
         </header>
 
         <!-- Loading Overlay -->
-        <div id="loading" class="hidden fixed inset-0 bg-dark/90 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent mb-4"></div>
-            <p class="text-accent font-serif animate-pulse text-lg">Consulting the Stars...</p>
+        <div id="loading" class="hidden fixed inset-0 bg-dark/95 z-50 flex flex-col items-center justify-center backdrop-blur-md">
+            <div class="relative">
+                <div class="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-accent mb-4"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fa-solid fa-star text-accent/50 text-xl animate-pulse"></i>
+                </div>
+            </div>
+            <p id="loadingText" class="text-accent font-serif text-xl tracking-wider animate-pulse mt-4">Consulting the Stars...</p>
         </div>
 
-        <!-- Input Form Section -->
+        <!-- Share Modal -->
+        <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+            <div class="bg-card border border-gray-600 p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center fade-in">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-900/30 mb-6 border border-green-500/30">
+                    <i class="fa-solid fa-check text-green-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Link Copied!</h3>
+                <div class="bg-dark/50 p-3 rounded-xl border border-gray-700 mb-6 break-all text-xs text-accent font-mono select-all text-center">
+                    <span id="shareUrlText"></span>
+                </div>
+                <button onclick="closeModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition">Done</button>
+            </div>
+        </div>
+
+        <!-- Input Form -->
         <div id="inputSection" class="bg-card p-6 md:p-8 rounded-3xl shadow-2xl border border-gray-700/50">
             <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-white">
                 <i class="fa-solid fa-compass text-accent"></i> Enter Details
             </h2>
 
-            <form id="sajuForm" class="space-y-5">
+            <!-- form 태그의 기능을 죽이고 div처럼 씀 -->
+            <form id="sajuForm" class="space-y-5" onsubmit="return false;">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Birth Date</label>
-                        <input type="date" id="birth_date" required
-                            class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
+                        <input type="date" id="birth_date" class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Birth Time</label>
-                        <input type="time" id="birth_time" required
-                            class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
+                        <input type="time" id="birth_time" class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
                     </div>
                 </div>
 
@@ -97,94 +104,98 @@
                     <i class="fa-solid fa-wand-magic-sparkles text-accent"></i>
                 </div>
 
-                <button type="submit"
+                <!-- type="button"으로 변경하고 onclick 이벤트 직접 연결 -->
+                <button type="button" onclick="startAnalysis()"
                     class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-violet-900/20 transform transition hover:scale-[1.01] active:scale-95 text-lg">
                     Reveal My Blueprint
                 </button>
             </form>
         </div>
 
-        <!-- Result Section (Hidden by default) -->
+        <!-- Result Section -->
         <div id="resultSection" class="hidden space-y-6 fade-in">
-            <!-- Share Bar -->
             <div class="flex justify-end mb-2">
-                <button onclick="shareResult()" class="text-sm text-accent hover:text-white transition flex items-center gap-2 bg-card px-4 py-2 rounded-full border border-gray-700">
-                    <i class="fa-solid fa-share-nodes"></i> Share Link
+                <button onclick="shareResult()" class="text-sm text-accent hover:text-white transition flex items-center gap-2 bg-card px-4 py-2 rounded-full border border-gray-700 shadow-lg hover:bg-gray-700">
+                    <i class="fa-solid fa-share-nodes"></i> Share Result
                 </button>
             </div>
-
-            <!-- Main Card -->
             <div class="bg-card rounded-3xl overflow-hidden shadow-2xl border border-gray-700/50">
-                <!-- Day Master Title -->
                 <div class="bg-gradient-to-r from-violet-900/50 to-indigo-900/50 p-8 text-center border-b border-gray-700/50">
                     <p class="text-gray-400 text-sm uppercase tracking-widest mb-2">Your Core Archetype</p>
                     <h2 id="dayMaster" class="text-3xl md:text-4xl font-serif font-bold text-white mb-2"></h2>
                     <p id="birthDetails" class="text-gray-400 text-sm font-mono"></p>
                 </div>
-
                 <div class="p-6 md:p-8 space-y-8">
-                    <!-- 5 Elements Chart -->
                     <div>
                         <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-chart-simple text-gray-400"></i> Elemental Balance
                         </h3>
-                        <div class="space-y-3" id="elementsChart">
-                            <!-- JS will inject bars here -->
-                        </div>
+                        <div class="space-y-3" id="elementsChart"></div>
                     </div>
-
-                    <!-- AI Analysis -->
                     <div id="aiSection" class="bg-dark/50 rounded-2xl p-6 border border-gray-700/50">
                         <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-robot text-accent"></i> AI Insight
                         </h3>
-                        <div id="aiContent" class="text-gray-300 text-sm leading-relaxed whitespace-pre-line font-light">
-                            <!-- AI Text -->
-                        </div>
+                        <div id="aiContent" class="text-gray-300 text-sm leading-relaxed whitespace-pre-line font-light"></div>
                     </div>
                 </div>
             </div>
-
-            <button onclick="window.location.href='/'" class="w-full py-4 text-gray-400 hover:text-white transition">
-                Analyze Another Person
-            </button>
+            <button onclick="window.location.href='/'" class="w-full py-4 text-gray-400 hover:text-white transition">Analyze Another Person</button>
         </div>
     </div>
 
     <script>
-        // --- 1. 유틸리티 및 초기화 ---
+        // 초기화
         const urlParams = new URLSearchParams(window.location.search);
         const recordId = urlParams.get('id');
+        let loadingInterval;
+        const loadingMessages = ["Aligning the Stars...", "Calculating...", "Consulting AI...", "Almost there..."];
 
-        // 기본값 설정
-        const now = new Date();
-        document.getElementById('birth_date').valueAsDate = now;
-        document.getElementById('birth_time').value = now.toTimeString().substring(0,5);
+        // JS 로드 확인용 로그
+        console.log("Saju App Initialized");
 
-        // --- 2. 페이지 로드 시 로직 ---
-        if (recordId) {
-            // 공유 링크로 들어온 경우 -> 결과 바로 조회
-            fetchRecord(recordId);
+        // 날짜 기본값 세팅
+        try {
+            const now = new Date();
+            const dateInput = document.getElementById('birth_date');
+            const timeInput = document.getElementById('birth_time');
+            if (dateInput) dateInput.valueAsDate = now;
+            if (timeInput) timeInput.value = now.toTimeString().substring(0,5);
+        } catch(e) { console.error("Date init error", e); }
+
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            let i = 0;
+            const textEl = document.getElementById('loadingText');
+            textEl.textContent = loadingMessages[0];
+            loadingInterval = setInterval(() => {
+                i = (i + 1) % loadingMessages.length;
+                textEl.textContent = loadingMessages[i];
+            }, 800);
         }
 
-        // --- 3. 이벤트 리스너 ---
-        document.getElementById('timezone').addEventListener('change', function(e) {
-            const tz = e.target.value;
-            const longInput = document.getElementById('longitude');
-            if(tz === 'Asia/Seoul') longInput.value = 127.0;
-            if(tz === 'America/New_York') longInput.value = -74.0060;
-            if(tz === 'America/Los_Angeles') longInput.value = -118.2437;
-            if(tz === 'Europe/London') longInput.value = -0.1276;
-        });
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+            clearInterval(loadingInterval);
+        }
 
-        document.getElementById('sajuForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const loading = document.getElementById('loading');
-            loading.classList.remove('hidden');
+        // --- 버튼 클릭 시 실행되는 핵심 함수 ---
+        async function startAnalysis() {
+            console.log("Analysis Button Clicked"); // 클릭 확인용
+
+            const bDate = document.getElementById('birth_date').value;
+            const bTime = document.getElementById('birth_time').value;
+
+            if(!bDate || !bTime) {
+                alert("Please select both Date and Time.");
+                return;
+            }
+
+            showLoading();
 
             const payload = {
-                birth_date: document.getElementById('birth_date').value,
-                birth_time: document.getElementById('birth_time').value,
+                birth_date: bDate,
+                birth_time: bTime,
                 timezone: document.getElementById('timezone').value,
                 longitude: parseFloat(document.getElementById('longitude').value),
                 latitude: 0.0,
@@ -192,14 +203,20 @@
             };
 
             try {
+                // Fetch 요청
                 const response = await fetch('/saju', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+
                 const data = await response.json();
 
-                // URL에 ID 추가해서 히스토리 변경 (새로고침해도 유지되게)
+                // URL 업데이트
                 if(data.record_id) {
                     const newUrl = `${window.location.pathname}?id=${data.record_id}`;
                     window.history.pushState({path: newUrl}, '', newUrl);
@@ -208,43 +225,19 @@
                 renderResult(data);
 
             } catch (err) {
-                alert('Error: ' + err.message);
+                console.error(err);
+                alert('Analysis Failed!\n\nReason: ' + err.message + '\n\nPlease check if the server is running correctly.');
             } finally {
-                loading.classList.add('hidden');
-            }
-        });
-
-        // --- 4. 데이터 조회 및 렌더링 함수 ---
-        async function fetchRecord(id) {
-            const loading = document.getElementById('loading');
-            loading.classList.remove('hidden');
-            try {
-                const response = await fetch(`/saju/${id}`);
-                if (!response.ok) throw new Error("Record not found");
-                const data = await response.json();
-                renderResult(data);
-            } catch (err) {
-                alert("Could not load record. It might have been deleted.");
-                window.location.href = '/';
-            } finally {
-                loading.classList.add('hidden');
+                hideLoading();
             }
         }
 
+        // 결과 렌더링
         function renderResult(data) {
-            // 섹션 전환
             document.getElementById('inputSection').classList.add('hidden');
             document.getElementById('resultSection').classList.remove('hidden');
 
-            // 1. 기본 정보 매핑
-            // Day Pillar 번역 (한글->영어 매핑이 필요하거나 백엔드에서 받아야 함)
-            // 백엔드에서 'day_master'를 따로 안 보내주면 JSON 파싱해서 대략적으로 표시
-            // 여기서는 일단 간지 한자 그대로 보여주거나 백엔드가 준 analysis 활용
-
-            // pillars 데이터 확인
-            const dayPillar = data.saju.day; // 예: 戊寅
-
-            // 간단 매핑 (프론트용) - 예시
+            const dayPillar = data.saju.day;
             const stemMap = {'甲':'Yang Wood', '乙':'Yin Wood', '丙':'Yang Fire', '丁':'Yin Fire', '戊':'Yang Earth', '己':'Yin Earth', '庚':'Yang Metal', '辛':'Yin Metal', '壬':'Yang Water', '癸':'Yin Water'};
             const branchMap = {'子':'Rat', '丑':'Ox', '寅':'Tiger', '卯':'Rabbit', '辰':'Dragon', '巳':'Snake', '午':'Horse', '未':'Sheep', '申':'Monkey', '酉':'Rooster', '戌':'Dog', '亥':'Pig'};
 
@@ -255,54 +248,78 @@
             document.getElementById('dayMaster').textContent = engTitle;
             document.getElementById('birthDetails').textContent = `${data.input.birth_date} ${data.input.birth_time} (${data.input.timezone})`;
 
-            // 2. 오행 그래프 그리기
             const elContainer = document.getElementById('elementsChart');
             elContainer.innerHTML = '';
             const colors = { 'Wood': 'bg-wood', 'Fire': 'bg-fire', 'Earth': 'bg-earth', 'Metal': 'bg-metal', 'Water': 'bg-water' };
             const icons = { 'Wood': 'fa-tree', 'Fire': 'fa-fire', 'Earth': 'fa-mountain', 'Metal': 'fa-gavel', 'Water': 'fa-water' };
 
-            // 최대값 찾기 (그래프 비율용)
             const maxVal = Math.max(...Object.values(data.elements));
 
             for (const [elm, count] of Object.entries(data.elements)) {
-                const percent = maxVal > 0 ? (count / 8) * 100 : 0; // 8글자 기준 %
-                const displayWidth = Math.max(percent, 5); // 최소 너비 보장
-
+                const percent = maxVal > 0 ? (count / 8) * 100 : 0;
+                const displayWidth = Math.max(percent, 5);
                 const row = document.createElement('div');
                 row.className = 'flex items-center gap-4';
                 row.innerHTML = `
-                    <div class="w-20 text-xs font-semibold text-gray-400 flex items-center gap-2">
-                        <i class="fa-solid ${icons[elm]} w-4"></i> ${elm}
-                    </div>
+                    <div class="w-20 text-xs font-semibold text-gray-400 flex items-center gap-2"><i class="fa-solid ${icons[elm]} w-4"></i> ${elm}</div>
                     <div class="flex-1 bg-dark rounded-full h-4 overflow-hidden relative">
-                        <div class="${colors[elm]} h-full rounded-full element-bar flex items-center justify-end px-2" style="width: ${displayWidth}%">
-                            <span class="text-[10px] font-bold text-white/90">${count}</span>
-                        </div>
+                        <div class="${colors[elm]} h-full rounded-full element-bar flex items-center justify-end px-2" style="width: ${displayWidth}%"><span class="text-[10px] font-bold text-white/90">${count}</span></div>
                     </div>
                 `;
                 elContainer.appendChild(row);
             }
 
-            // 3. AI 분석 표시
             const aiContent = document.getElementById('aiContent');
             if (data.analysis) {
                 document.getElementById('aiSection').classList.remove('hidden');
-                // 마크다운 스타일 제거하고 텍스트만 깔끔하게
                 aiContent.innerText = data.analysis.replace(/\*\*/g, '').replace(/###/g, '');
             } else {
                 document.getElementById('aiSection').classList.add('hidden');
             }
         }
 
-        async function shareResult() {
-            const url = window.location.href;
+        // 기록 조회
+        async function fetchRecord(id) {
+            showLoading();
             try {
-                await navigator.clipboard.writeText(url);
-                alert('Link copied to clipboard! Share it with friends.');
+                const response = await fetch(`/saju/${id}`);
+                if (!response.ok) throw new Error("Record not found");
+                const data = await response.json();
+                renderResult(data);
             } catch (err) {
-                alert('Copy failed. URL: ' + url);
+                alert("Could not load record.");
+                window.location.href = '/';
+            } finally {
+                hideLoading();
             }
         }
+
+        if (recordId) fetchRecord(recordId);
+
+        // 기타 UI 리스너
+        document.getElementById('timezone').addEventListener('change', function(e) {
+            const tz = e.target.value;
+            const longInput = document.getElementById('longitude');
+            if(tz === 'Asia/Seoul') longInput.value = 127.0;
+            if(tz === 'America/New_York') longInput.value = -74.0060;
+            if(tz === 'America/Los_Angeles') longInput.value = -118.2437;
+            if(tz === 'Europe/London') longInput.value = -0.1276;
+        });
+
+        // 공유 기능
+        async function shareResult() {
+            const url = window.location.href;
+            const shareData = { title: 'My Elemental Blueprint', text: 'Check out my energy signature!', url: url };
+            if (navigator.share) { try { await navigator.share(shareData); return; } catch (e) {} }
+            try { await navigator.clipboard.writeText(url); showModal(url); } catch (e) { showModal(url); }
+        }
+
+        function showModal(url) {
+            document.getElementById('shareUrlText').textContent = url;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('shareModal').classList.add('hidden'); }
+        document.getElementById('shareModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
     </script>
 </body>
 </html>
