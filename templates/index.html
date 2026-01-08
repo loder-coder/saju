@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <title>Elemental Blueprint</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+KR:wght@300;500;700&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'Noto Serif KR', 'serif'], // 한국적 명조 느낌
+                    },
+                    colors: {
+                        ink: '#0b0c10',       // 먹색 (배경)
+                        paper: '#1f2833',     // 한지 느낌의 어두운 배경
+                        jade: '#45a29e',      // 옥색 (메인 포인트)
+                        gold: '#c5c6c7',      // 은은한 금속성/흰색
+                        accent: '#66fcf1',    // 밝은 옥색 (강조)
+                        wood: '#4ade80', fire: '#f87171', earth: '#fbbf24', metal: '#94a3b8', water: '#60a5fa'
+                    },
+                    backgroundImage: {
+                        'mystic-gradient': 'linear-gradient(to bottom right, #0b0c10, #11151c)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0b0c10; color: #c5c6c7; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 탭 활성화 스타일 */
+        .tab-active { border-bottom: 2px solid #66fcf1; color: #66fcf1; }
+        .tab-inactive { color: #6b7280; }
+
+        /* 카드 호버 효과 */
+        .mystic-card { transition: all 0.3s ease; border: 1px solid rgba(69, 162, 158, 0.2); }
+        .mystic-card:hover { transform: translateY(-2px); border-color: #66fcf1; box-shadow: 0 4px 20px rgba(102, 252, 241, 0.1); }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen bg-mystic-gradient selection:bg-jade selection:text-black">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col relative">
+
+        <!-- Header (Logo) -->
+        <header class="pt-8 pb-4 text-center cursor-pointer z-10" onclick="window.location.href='/'">
+            <div class="inline-block border-2 border-jade/30 rounded-full p-1 mb-2">
+                <div class="w-2 h-2 bg-jade rounded-full"></div>
+            </div>
+            <h1 class="text-3xl font-serif font-bold text-white tracking-widest">
+                SAJU <span class="text-jade text-sm block font-sans tracking-[0.3em] mt-1 opacity-80">BLUEPRINT</span>
+            </h1>
+        </header>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="hidden fixed inset-0 bg-ink/95 z-50 flex flex-col items-center justify-center backdrop-blur-md">
+            <div class="relative">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-jade mb-4"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-jade font-serif text-xl">氣</span>
+                </div>
+            </div>
+            <p id="loadingText" class="text-jade font-serif tracking-widest animate-pulse mt-4">READING ENERGY...</p>
+        </div>
+
+        <!-- Share Modal -->
+        <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-4">
+            <div class="bg-paper border border-jade/50 p-6 rounded-none w-full max-w-sm text-center fade-in relative">
+                <button onclick="closeModal()" class="absolute top-2 right-4 text-gray-500 hover:text-white">&times;</button>
+                <i class="fa-solid fa-link text-jade text-3xl mb-4"></i>
+                <h3 class="text-xl font-serif text-white mb-2">Link Copied</h3>
+                <p class="text-gray-400 text-xs mb-4">Share your energy signature with the world.</p>
+                <div class="bg-black/50 p-3 border border-gray-700 mb-4 text-xs text-jade font-mono truncate">
+                    <span id="shareUrlText"></span>
+                </div>
+                <button onclick="closeModal()" class="w-full bg-jade hover:bg-opacity-90 text-black font-bold py-3 transition uppercase tracking-widest text-xs">Close</button>
+            </div>
+        </div>
+
+        <!-- SECTION 1: Input Form -->
+        <div id="inputSection" class="flex-1 flex flex-col justify-center p-6 fade-in">
+            <div class="bg-paper/50 backdrop-blur-sm p-8 border-y border-jade/30">
+                <h2 class="text-center font-serif text-xl text-gray-200 mb-8">Enter Your Origin</h2>
+
+                <form id="sajuForm" class="space-y-6" onsubmit="return false;">
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Date of Birth</label>
+                            <input type="date" id="birth_date" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center">
+                        </div>
+                        <div class="relative">
+                            <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Time of Birth</label>
+                            <input type="time" id="birth_time" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center">
+                        </div>
+                        <div class="relative">
+                            <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Location</label>
+                            <select id="timezone" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center appearance-none">
+                                <option value="Asia/Seoul" class="bg-paper">Seoul (Korea)</option>
+                                <option value="America/New_York" selected class="bg-paper">New York (EST)</option>
+                                <option value="America/Los_Angeles" class="bg-paper">Los Angeles (PST)</option>
+                                <option value="Europe/London" class="bg-paper">London (GMT)</option>
+                            </select>
+                            <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="hidden">
+                        <input type="number" id="longitude" value="-74.0060">
+                    </div>
+
+                    <button type="button" onclick="startAnalysis()"
+                        class="w-full bg-jade hover:bg-accent text-black font-bold py-4 mt-4 transition-all tracking-widest uppercase border border-jade shadow-[0_0_15px_rgba(69,162,158,0.3)]">
+                        Reveal My Energy
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Dashboard (Result) -->
+        <div id="resultSection" class="hidden flex-col min-h-screen p-4 pb-20 fade-in">
+
+            <!-- Core Archetype (Fixed Top) -->
+            <div class="text-center mb-8 relative">
+                <p class="text-[10px] text-jade uppercase tracking-[0.2em] mb-2">Day Master</p>
+                <h2 id="dayMaster" class="text-3xl font-serif text-white font-bold mb-1"></h2>
+                <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-jade to-transparent mx-auto"></div>
+                <button onclick="shareResult()" class="absolute right-0 top-2 text-gray-500 hover:text-jade">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                </button>
+            </div>
+
+            <!-- Category 1: Time Flow (운세) -->
+            <div class="mb-8">
+                <div class="flex justify-center gap-6 mb-4 text-sm font-serif border-b border-gray-800 pb-2">
+                    <button class="tab-active transition-colors">Daily</button>
+                    <button class="tab-inactive hover:text-gray-300 transition-colors" onclick="alert('Weekly/Monthly features coming soon!')">Weekly</button>
+                    <button class="tab-inactive hover:text-gray-300 transition-colors" onclick="alert('2025 Yearly Forecast coming soon!')">Yearly</button>
+                </div>
+
+                <!-- Daily Card -->
+                <div id="dailyCard" class="bg-paper/80 border border-gray-700 p-6 relative overflow-hidden mystic-card">
+                    <div class="absolute -right-4 -top-4 text-gray-800 opacity-20 text-9xl font-serif">氣</div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-end mb-2">
+                            <h3 class="text-jade text-xs uppercase tracking-widest">Today's Flow</h3>
+                            <span id="fortuneScore" class="text-2xl font-serif text-white">--</span>
+                        </div>
+                        <p id="fortuneAdvice" class="text-gray-300 font-serif leading-relaxed text-sm">Loading...</p>
+                        <p id="fortuneRelation" class="text-[10px] text-gray-500 mt-2 font-mono uppercase text-right">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 2: Life Themes (테마) -->
+            <div class="mb-8">
+                <h3 class="text-center text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4">Life Themes</h3>
+                <div class="grid grid-cols-1 gap-3">
+                    <!-- Love -->
+                    <button onclick="analyzeTheme('love')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-pink-400 group-hover:border-pink-400 transition-colors">
+                                <i class="fa-solid fa-heart"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-gray-200 font-serif text-sm">Love & Relationship</h4>
+                                <p class="text-[10px] text-gray-500">Partner style, Attraction</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-pink-400"></i>
+                    </button>
+
+                    <!-- Wealth -->
+                    <button onclick="analyzeTheme('wealth')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-yellow-400 group-hover:border-yellow-400 transition-colors">
+                                <i class="fa-solid fa-coins"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-gray-200 font-serif text-sm">Wealth & Asset</h4>
+                                <p class="text-[10px] text-gray-500">Money flow, Investment</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-yellow-400"></i>
+                    </button>
+
+                    <!-- Career -->
+                    <button onclick="analyzeTheme('career')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-blue-400 group-hover:border-blue-400 transition-colors">
+                                <i class="fa-solid fa-briefcase"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-gray-200 font-serif text-sm">Career & Path</h4>
+                                <p class="text-[10px] text-gray-500">Job aptitude, Success</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-blue-400"></i>
+                    </button>
+                </div>
+
+                <!-- AI Result Area -->
+                <div id="themeResultArea" class="hidden mt-4 bg-black/40 border border-jade/30 p-6 fade-in">
+                    <h4 id="themeTitle" class="text-jade text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2">Analysis</h4>
+                    <div id="aiContent" class="text-gray-300 text-sm font-light leading-7 whitespace-pre-line font-serif"></div>
+                </div>
+            </div>
+
+            <!-- Category 3: Chemistry (Standalone) -->
+            <div>
+                <button onclick="alert('Invite a friend feature is coming soon!')" class="w-full border border-gray-700 bg-gradient-to-r from-gray-900 to-black p-6 flex items-center justify-center gap-3 hover:border-jade transition-colors group">
+                    <span class="text-gray-400 font-serif italic group-hover:text-white transition-colors">Check Compatibility</span>
+                    <i class="fa-solid fa-infinity text-gray-600 group-hover:text-jade"></i>
+                </button>
+            </div>
+
+            <button onclick="window.location.href='/'" class="mt-8 text-xs text-gray-600 hover:text-jade text-center w-full uppercase tracking-widest">
+                Reset / New Analysis
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentInputData = null; // 입력값 저장용
+        const urlParams = new URLSearchParams(window.location.search);
+        const recordId = urlParams.get('id');
+        let loadingInterval;
+        const loadingMessages = ["Aligning Energy...", "Reading Celestial Stems...", "Consulting the Oracle...", "Decoding Blueprint..."];
+
+        // 초기화
+        try {
+            const now = new Date();
+            const dateInput = document.getElementById('birth_date');
+            const timeInput = document.getElementById('birth_time');
+            if (dateInput) dateInput.valueAsDate = now;
+            if (timeInput) timeInput.value = now.toTimeString().substring(0,5);
+        } catch(e) {}
+
+        // UI 함수
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            let i = 0;
+            const textEl = document.getElementById('loadingText');
+            textEl.textContent = loadingMessages[0];
+            loadingInterval = setInterval(() => { i = (i + 1) % loadingMessages.length; textEl.textContent = loadingMessages[i]; }, 800);
+        }
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+            clearInterval(loadingInterval);
+        }
+
+        // 1. 분석 시작 (기본 Daily + General 로직)
+        async function startAnalysis() {
+            const bDate = document.getElementById('birth_date').value;
+            const bTime = document.getElementById('birth_time').value;
+            if(!bDate || !bTime) { alert("Please complete all fields."); return; }
+
+            // 입력값 저장 (테마 분석 때 재사용)
+            currentInputData = {
+                birth_date: bDate,
+                birth_time: bTime,
+                timezone: document.getElementById('timezone').value,
+                longitude: parseFloat(document.getElementById('longitude').value),
+                latitude: 0.0,
+                include_analysis: false // 처음엔 AI 분석 끔 (빠른 로딩 + 토큰 절약)
+            };
+
+            showLoading();
+            try {
+                // 기본 사주 계산 요청
+                const response = await fetch('/saju', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentInputData)
+                });
+
+                if (!response.ok) throw new Error("Server Error");
+                const data = await response.json();
+
+                if(data.record_id) {
+                    const newUrl = `${window.location.pathname}?id=${data.record_id}`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
+                    renderDashboard(data);
+                    fetchDailyFortune(data.record_id);
+                }
+            } catch (err) {
+                alert('Connection Failed: ' + err.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 2. 대시보드 렌더링
+        function renderDashboard(data) {
+            document.getElementById('inputSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('resultSection').style.display = 'flex';
+
+            // Day Master (일주) 표시
+            const dayPillar = data.saju.day;
+            const stemMap = {'甲':'Yang Wood', '乙':'Yin Wood', '丙':'Yang Fire', '丁':'Yin Fire', '戊':'Yang Earth', '己':'Yin Earth', '庚':'Yang Metal', '辛':'Yin Metal', '壬':'Yang Water', '癸':'Yin Water'};
+            const branchMap = {'子':'Rat', '丑':'Ox', '寅':'Tiger', '卯':'Rabbit', '辰':'Dragon', '巳':'Snake', '午':'Horse', '未':'Sheep', '申':'Monkey', '酉':'Rooster', '戌':'Dog', '亥':'Pig'};
+            const engTitle = `${stemMap[dayPillar[0]] || dayPillar[0]} ${branchMap[dayPillar[1]] || dayPillar[1]}`;
+
+            document.getElementById('dayMaster').textContent = engTitle;
+        }
+
+        // 3. 오늘의 운세 가져오기
+        async function fetchDailyFortune(recordId) {
+            try {
+                const res = await fetch(`/fortune/daily/${recordId}`);
+                if(!res.ok) throw new Error("Fortune Failed");
+                const data = await res.json();
+
+                document.getElementById('fortuneScore').textContent = data.score;
+                document.getElementById('fortuneRelation').textContent = data.relation; // 영어만 나옴
+                document.getElementById('fortuneAdvice').textContent = data.advice;
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        // 4. 테마별 AI 분석 요청 (카드 클릭 시)
+        async function analyzeTheme(theme) {
+            if (!currentInputData) return; // 데이터 없으면 리턴
+
+            // UI 스크롤 및 준비
+            const resultArea = document.getElementById('themeResultArea');
+            const content = document.getElementById('aiContent');
+            const title = document.getElementById('themeTitle');
+
+            resultArea.classList.remove('hidden');
+            title.textContent = `${theme.toUpperCase()} ANALYSIS`;
+            content.textContent = "Consulting the AI Oracle...";
+
+            // 해당 테마로 API 재호출
+            const payload = { ...currentInputData, include_analysis: true, theme: theme };
+
+            try {
+                const response = await fetch('/saju', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.analysis) {
+                    content.innerText = data.analysis.replace(/\*\*/g, '').replace(/###/g, '');
+                    // 부드럽게 스크롤 이동
+                    resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (err) {
+                content.textContent = "The connection to the oracle was interrupted.";
+            }
+        }
+
+        // 기록 조회 (공유 링크 접속 시)
+        async function fetchRecord(id) {
+            showLoading();
+            try {
+                const response = await fetch(`/saju/${id}`);
+                if (!response.ok) throw new Error("Record not found");
+                const data = await response.json();
+
+                // 조회된 데이터로 inputData 복구 (테마 분석용)
+                currentInputData = {
+                    ...data.input,
+                    include_analysis: false // 초기화
+                };
+
+                renderDashboard(data);
+                fetchDailyFortune(id);
+            } catch (err) {
+                window.location.href = '/';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        if (recordId) fetchRecord(recordId);
+
+        // 이벤트 리스너들
+        document.getElementById('timezone').addEventListener('change', function(e) {
+            const tz = e.target.value;
+            const longInput = document.getElementById('longitude');
+            if(tz === 'Asia/Seoul') longInput.value = 127.0;
+            if(tz === 'America/New_York') longInput.value = -74.0060;
+            if(tz === 'America/Los_Angeles') longInput.value = -118.2437;
+            if(tz === 'Europe/London') longInput.value = -0.1276;
+        });
+
+        async function shareResult() {
+            const url = window.location.href;
+            const shareData = { title: 'Saju Blueprint', text: 'My Energy Signature', url: url };
+            if (navigator.share) { try { await navigator.share(shareData); return; } catch (e) {} }
+            try { await navigator.clipboard.writeText(url); showModal(url); } catch (e) { showModal(url); }
+        }
+
+        function showModal(url) {
+            document.getElementById('shareUrlText').textContent = url;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('shareModal').classList.add('hidden'); }
+    </script>
+</body>
+</html>

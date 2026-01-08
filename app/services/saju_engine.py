@@ -12,33 +12,33 @@ FIVE_ELEMENTS = {
     "申": "Metal", "酉": "Metal", "亥": "Water", "子": "Water"
 }
 
-# 십성(Ten Gods) 관계 매핑 (간소화 버전)
+# 십성(Ten Gods) 관계 매핑 (English Only)
 # (User Element, Today Element) -> Relation
 RELATIONS = {
-    # 비겁 (같은 오행): 친구, 경쟁자
-    ("Wood", "Wood"): "Friend (비견/겁재)", ("Fire", "Fire"): "Friend (비견/겁재)",
-    ("Earth", "Earth"): "Friend (비견/겁재)", ("Metal", "Metal"): "Friend (비견/겁재)",
-    ("Water", "Water"): "Friend (비견/겁재)",
+    # 비겁 (Same Element)
+    ("Wood", "Wood"): "Friend (Parallel)", ("Fire", "Fire"): "Friend (Parallel)",
+    ("Earth", "Earth"): "Friend (Parallel)", ("Metal", "Metal"): "Friend (Parallel)",
+    ("Water", "Water"): "Friend (Parallel)",
 
-    # 식상 (내가 생하는 오행): 표현, 창의력
-    ("Wood", "Fire"): "Output (식신/상관)", ("Fire", "Earth"): "Output (식신/상관)",
-    ("Earth", "Metal"): "Output (식신/상관)", ("Metal", "Water"): "Output (식신/상관)",
-    ("Water", "Wood"): "Output (식신/상관)",
+    # 식상 (Output)
+    ("Wood", "Fire"): "Output (Expression)", ("Fire", "Earth"): "Output (Expression)",
+    ("Earth", "Metal"): "Output (Expression)", ("Metal", "Water"): "Output (Expression)",
+    ("Water", "Wood"): "Output (Expression)",
 
-    # 재성 (내가 극하는 오행): 재물, 목표
-    ("Wood", "Earth"): "Wealth (편재/정재)", ("Fire", "Metal"): "Wealth (편재/정재)",
-    ("Earth", "Water"): "Wealth (편재/정재)", ("Metal", "Wood"): "Wealth (편재/정재)",
-    ("Water", "Fire"): "Wealth (편재/정재)",
+    # 재성 (Wealth)
+    ("Wood", "Earth"): "Wealth (Goal)", ("Fire", "Metal"): "Wealth (Goal)",
+    ("Earth", "Water"): "Wealth (Goal)", ("Metal", "Wood"): "Wealth (Goal)",
+    ("Water", "Fire"): "Wealth (Goal)",
 
-    # 관성 (나를 극하는 오행): 직장, 명예, 스트레스
-    ("Wood", "Metal"): "Career (편관/정관)", ("Fire", "Water"): "Career (편관/정관)",
-    ("Earth", "Wood"): "Career (편관/정관)", ("Metal", "Fire"): "Career (편관/정관)",
-    ("Water", "Earth"): "Career (편관/정관)",
+    # 관성 (Career/Power)
+    ("Wood", "Metal"): "Career (Discipline)", ("Fire", "Water"): "Career (Discipline)",
+    ("Earth", "Wood"): "Career (Discipline)", ("Metal", "Fire"): "Career (Discipline)",
+    ("Water", "Earth"): "Career (Discipline)",
 
-    # 인성 (나를 생하는 오행): 후원, 공부, 문서
-    ("Wood", "Water"): "Support (편인/정인)", ("Fire", "Wood"): "Support (편인/정인)",
-    ("Earth", "Fire"): "Support (편인/정인)", ("Metal", "Earth"): "Support (편인/정인)",
-    ("Water", "Metal"): "Support (편인/정인)",
+    # 인성 (Resource/Support)
+    ("Wood", "Water"): "Resource (Support)", ("Fire", "Wood"): "Resource (Support)",
+    ("Earth", "Fire"): "Resource (Support)", ("Metal", "Earth"): "Resource (Support)",
+    ("Water", "Metal"): "Resource (Support)",
 }
 
 
@@ -100,7 +100,7 @@ def get_today_fortune(user_day_master_gan: str):
     if "Wealth" in relation:
         score = 90
         advice = "Excellent day for financial decisions!"
-    elif "Support" in relation:
+    elif "Resource" in relation:
         score = 85
         advice = "Great day for learning and receiving help."
     elif "Output" in relation:
