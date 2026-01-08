@@ -7,8 +7,8 @@ app = FastAPI()
 
 
 class SajuRequest(BaseModel):
-    birth_date: str  # "1993-07-21"
-    birth_time: str  # "14:30"
+    birth_date: str
+    birth_time: str
 
 
 @app.get("/")
@@ -19,33 +19,21 @@ def health():
 @app.post("/saju")
 def saju_calculate(payload: SajuRequest):
     try:
-        birth_date = payload.birth_date
-        birth_time = payload.birth_time
+        year, month, day = map(int, payload.birth_date.split("-"))
+        hour, minute = map(int, payload.birth_time.split(":"))
 
-        year, month, day = map(int, birth_date.split("-"))
-        hour, minute = map(int, birth_time.split(":"))
-
-        # 1. 양력 → 음력 변환
         lunar = get_lunar_date(year, month, day)
 
-        lunar_year = lunar["lunar"]["year"]
-        lunar_month = lunar["lunar"]["month"]
-        lunar_day = lunar["lunar"]["day"]
-
-        # 2. 사주 계산
         saju = calculate_saju(
-            lunar_year,
-            lunar_month,
-            lunar_day,
+            lunar["lunar"]["year"],
+            lunar["lunar"]["month"],
+            lunar["lunar"]["day"],
             hour,
             minute
         )
 
         return {
-            "input": {
-                "birth_date": birth_date,
-                "birth_time": birth_time
-            },
+            "input": payload.dict(),
             "lunar": lunar,
             "saju": saju
         }
