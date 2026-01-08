@@ -37,15 +37,22 @@
 
         .mystic-card { transition: all 0.3s ease; border: 1px solid rgba(69, 162, 158, 0.2); }
         .mystic-card:hover { transform: translateY(-2px); border-color: #66fcf1; box-shadow: 0 4px 20px rgba(102, 252, 241, 0.1); }
-        .tab-active { border-bottom: 2px solid #66fcf1; color: #66fcf1; }
-        .tab-inactive { color: #6b7280; }
+        .tab-btn.active { color: #66fcf1; border-bottom: 2px solid #66fcf1; }
+
+        /* Custom Input Styles */
+        .custom-input { background: transparent; border: 1px solid #4b5563; color: white; text-align: center; }
+        .custom-input:focus { border-color: #45a29e; outline: none; }
+
+        /* Location Search Results */
+        #locationResults { max-height: 150px; overflow-y: auto; }
+        #locationResults li:hover { background-color: #45a29e; color: black; }
     </style>
 </head>
 <body class="font-sans antialiased min-h-screen bg-mystic-gradient selection:bg-jade selection:text-black overflow-x-hidden">
 
     <div class="max-w-md mx-auto min-h-screen flex flex-col relative">
 
-        <!-- Header (Logo) - Always visible after intro -->
+        <!-- Header -->
         <header id="mainHeader" class="hidden pt-8 pb-4 text-center cursor-pointer z-10 fade-in" onclick="window.location.href='/'">
             <div class="inline-block border-2 border-jade/30 rounded-full p-1 mb-2">
                 <div class="w-2 h-2 bg-jade rounded-full"></div>
@@ -55,27 +62,22 @@
             </h1>
         </header>
 
-        <!-- Loading Overlay -->
+        <!-- Loading -->
         <div id="loading" class="hidden fixed inset-0 bg-ink/95 z-50 flex flex-col items-center justify-center backdrop-blur-md">
             <div class="relative">
                 <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-jade mb-4"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <span class="text-jade font-serif text-xl">氣</span>
-                </div>
+                <span class="text-jade font-serif text-xl absolute inset-0 flex items-center justify-center">氣</span>
             </div>
             <p id="loadingText" class="text-jade font-serif tracking-widest animate-pulse mt-4">READING ENERGY...</p>
         </div>
 
         <!-- Share Modal -->
         <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-4">
-            <div class="bg-paper border border-jade/50 p-6 rounded-none w-full max-w-sm text-center fade-in relative">
+            <div class="bg-paper border border-jade/50 p-6 w-full max-w-sm text-center fade-in relative">
                 <button onclick="closeModal()" class="absolute top-2 right-4 text-gray-500 hover:text-white">&times;</button>
-                <i class="fa-solid fa-link text-jade text-3xl mb-4"></i>
                 <h3 class="text-xl font-serif text-white mb-2">Link Copied</h3>
-                <div class="bg-black/50 p-3 border border-gray-700 mb-4 text-xs text-jade font-mono truncate">
-                    <span id="shareUrlText"></span>
-                </div>
-                <button onclick="closeModal()" class="w-full bg-jade hover:bg-opacity-90 text-black font-bold py-3 transition uppercase tracking-widest text-xs">Close</button>
+                <div class="bg-black/50 p-3 border border-gray-700 mb-4 text-xs text-jade font-mono truncate"><span id="shareUrlText"></span></div>
+                <button onclick="closeModal()" class="w-full bg-jade hover:bg-opacity-90 text-black font-bold py-3 text-xs tracking-widest uppercase">Close</button>
             </div>
         </div>
 
@@ -90,11 +92,7 @@
             </div>
             <h1 class="text-4xl font-serif font-bold text-white mb-2 tracking-widest">SAJU</h1>
             <p class="text-jade text-sm tracking-[0.5em] mb-12 uppercase opacity-80">Elemental Blueprint</p>
-
-            <p class="text-gray-400 font-serif text-sm leading-7 mb-12 max-w-xs mx-auto italic">
-                "Discover the energy signature inscribed in the stars at the moment of your birth."
-            </p>
-
+            <p class="text-gray-400 font-serif text-sm leading-7 mb-12 max-w-xs mx-auto italic">"Discover the energy signature inscribed in the stars at the moment of your birth."</p>
             <button onclick="enterApp()" class="group relative px-8 py-4 bg-transparent border border-jade/50 text-white font-serif tracking-widest hover:bg-jade/10 transition-all duration-500">
                 <span class="absolute w-2 h-2 border-l border-t border-jade -top-1 -left-1 transition-all group-hover:w-full group-hover:h-full"></span>
                 <span class="absolute w-2 h-2 border-r border-b border-jade -bottom-1 -right-1 transition-all group-hover:w-full group-hover:h-full"></span>
@@ -106,259 +104,354 @@
         <div id="inputSection" class="hidden flex-1 flex-col justify-center p-6 fade-in">
             <div class="bg-paper/50 backdrop-blur-sm p-8 border-y border-jade/30">
                 <h2 class="text-center font-serif text-xl text-gray-200 mb-8">Enter Your Origin</h2>
+
                 <form id="sajuForm" class="space-y-6" onsubmit="return false;">
+                    <!-- Date Input -->
                     <div class="space-y-4">
                         <div class="relative">
                             <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Date of Birth</label>
-                            <input type="date" id="birth_date" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center">
+                            <input type="date" id="birth_date" class="w-full custom-input p-3">
                         </div>
+
+                        <!-- Custom Time Input -->
                         <div class="relative">
                             <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Time of Birth</label>
-                            <input type="time" id="birth_time" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center">
+                            <div class="flex gap-2 w-full">
+                                <input type="number" id="time_hour" placeholder="HH" min="1" max="12" class="w-1/3 custom-input p-3">
+                                <input type="number" id="time_min" placeholder="MM" min="0" max="59" class="w-1/3 custom-input p-3">
+                                <button type="button" id="ampm_btn" onclick="toggleAmPm()" class="w-1/3 custom-input p-3 hover:bg-jade/20 transition text-jade font-bold">AM</button>
+                            </div>
+                            <!-- Hidden input for actual processing -->
+                            <input type="hidden" id="birth_time">
                         </div>
+
+                        <!-- Location Search Input -->
                         <div class="relative">
-                            <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Location</label>
-                            <select id="timezone" class="w-full bg-transparent border border-gray-600 p-3 text-white focus:border-jade focus:outline-none transition-colors text-center appearance-none">
-                                <option value="Asia/Seoul" class="bg-paper">Seoul (Korea)</option>
-                                <option value="America/New_York" selected class="bg-paper">New York (EST)</option>
-                                <option value="America/Los_Angeles" class="bg-paper">Los Angeles (PST)</option>
-                                <option value="Europe/London" class="bg-paper">London (GMT)</option>
-                            </select>
-                            <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-500 pointer-events-none"></i>
+                            <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Location (City)</label>
+                            <div class="relative">
+                                <input type="text" id="location_search" placeholder="e.g. New York" class="w-full custom-input p-3 pr-10" onkeyup="searchLocation(this.value)">
+                                <i class="fa-solid fa-search absolute right-3 top-3.5 text-gray-500"></i>
+                                <ul id="locationResults" class="hidden absolute w-full bg-paper border border-gray-600 mt-1 z-50 text-sm text-gray-300 shadow-xl"></ul>
+                            </div>
+                            <!-- Hidden inputs for timezone/coordinates -->
+                            <input type="hidden" id="timezone" value="America/New_York">
+                            <input type="hidden" id="longitude" value="-74.0060">
                         </div>
                     </div>
-                    <div class="hidden"><input type="number" id="longitude" value="-74.0060"></div>
-                    <button type="button" onclick="startAnalysis()" class="w-full bg-jade hover:bg-accent text-black font-bold py-4 mt-4 transition-all tracking-widest uppercase border border-jade shadow-[0_0_15px_rgba(69,162,158,0.3)]">Reveal My Energy</button>
+
+                    <button type="button" onclick="startAnalysis()"
+                        class="w-full bg-jade hover:bg-accent text-black font-bold py-4 mt-4 transition-all tracking-widest uppercase border border-jade shadow-[0_0_15px_rgba(69,162,158,0.3)]">
+                        Reveal My Energy
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- SECTION 2: Dashboard (Result) -->
+        <!-- Result Section (Dashboard) -->
         <div id="resultSection" class="hidden flex-col min-h-screen p-4 pb-20 fade-in">
-            <!-- Same as before -->
-            <div class="text-center mb-8 relative">
-                <p class="text-[10px] text-jade uppercase tracking-[0.2em] mb-2">Day Master</p>
-                <h2 id="dayMaster" class="text-3xl font-serif text-white font-bold mb-1"></h2>
-                <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-jade to-transparent mx-auto"></div>
-                <button onclick="shareResult()" class="absolute right-0 top-2 text-gray-500 hover:text-jade"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center mb-6 px-2">
+                <div>
+                    <p class="text-[10px] text-jade uppercase tracking-widest">Day Master</p>
+                    <h2 id="dayMaster" class="text-xl font-serif text-white font-bold"></h2>
+                </div>
+                <button onclick="shareResult()" class="text-gray-500 hover:text-jade"><i class="fa-solid fa-arrow-up-from-bracket text-xl"></i></button>
             </div>
 
-            <div class="mb-8">
-                <div class="flex justify-center gap-6 mb-4 text-sm font-serif border-b border-gray-800 pb-2">
-                    <button class="tab-active transition-colors">Daily</button>
-                    <button class="tab-inactive hover:text-gray-300 transition-colors" onclick="alert('Weekly coming soon!')">Weekly</button>
-                    <button class="tab-inactive hover:text-gray-300 transition-colors" onclick="alert('Yearly coming soon!')">Yearly</button>
+            <!-- 1. VISUAL FORTUNE CARD (Time Flow) -->
+            <div class="mb-10">
+                <div class="flex justify-center gap-8 mb-6 text-xs font-serif tracking-widest border-b border-gray-800 pb-2">
+                    <button onclick="switchTab('daily')" id="tab-daily" class="tab-btn active">DAILY</button>
+                    <button onclick="switchTab('weekly')" id="tab-weekly" class="tab-btn text-gray-500">WEEKLY</button>
+                    <button onclick="switchTab('monthly')" id="tab-monthly" class="tab-btn text-gray-500">MONTHLY</button>
+                    <button onclick="switchTab('yearly')" id="tab-yearly" class="tab-btn text-gray-500">YEARLY</button>
                 </div>
-                <div id="dailyCard" class="bg-paper/80 border border-gray-700 p-6 relative overflow-hidden mystic-card">
-                    <div class="absolute -right-4 -top-4 text-gray-800 opacity-20 text-9xl font-serif">氣</div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-end mb-2">
-                            <h3 class="text-jade text-xs uppercase tracking-widest">Today's Flow</h3>
-                            <span id="fortuneScore" class="text-2xl font-serif text-white">--</span>
+
+                <div id="fortuneCard" class="fortune-card bg-gray-900 aspect-[4/5] w-full rounded-2xl relative">
+                    <!-- Dynamic Image Background -->
+                    <img id="fortuneImage" src="" class="absolute inset-0 w-full h-full object-cover opacity-80 transition-opacity duration-700" alt="Fortune Visual">
+
+                    <!-- Overlay Text -->
+                    <div class="image-overlay absolute inset-0 flex flex-col justify-end p-6" style="background: linear-gradient(to top, rgba(11,12,16,1) 0%, rgba(11,12,16,0.6) 50%, rgba(11,12,16,0) 100%);">
+                        <div class="border-l-2 border-jade pl-4 mb-2">
+                            <p id="periodLabel" class="text-jade text-xs uppercase tracking-[0.2em] mb-1">Today's Flow</p>
+                            <h3 id="relationTitle" class="text-3xl font-serif text-white font-bold leading-none mb-2">--</h3>
                         </div>
-                        <p id="fortuneAdvice" class="text-gray-300 font-serif leading-relaxed text-sm">Loading...</p>
-                        <p id="fortuneRelation" class="text-[10px] text-gray-500 mt-2 font-mono uppercase text-right">--</p>
+                        <p id="fortuneAdvice" class="text-gray-200 font-serif text-sm leading-relaxed font-light italic">Loading cosmic energy...</p>
+                        <div class="mt-4 flex justify-between items-end">
+                            <span class="text-[10px] text-gray-400 font-mono">ENERGY SCORE</span>
+                            <span id="fortuneScore" class="text-4xl font-serif text-white">--</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mb-8">
-                <h3 class="text-center text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4">Life Themes</h3>
-                <div class="grid grid-cols-1 gap-3">
-                    <button onclick="analyzeTheme('love')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+            <!-- 2. THEMES (Cards) -->
+            <div class="mb-12">
+                <h3 class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 px-2">Specific Themes</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <div onclick="analyzeTheme('love')" class="mystic-card bg-paper p-5 flex items-center justify-between cursor-pointer group rounded-xl">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-pink-400 group-hover:border-pink-400 transition-colors"><i class="fa-solid fa-heart"></i></div>
-                            <div><h4 class="text-gray-200 font-serif text-sm">Love & Relationship</h4><p class="text-[10px] text-gray-500">Partner style, Attraction</p></div>
+                            <div class="w-12 h-12 rounded-full bg-black border border-gray-700 flex items-center justify-center text-pink-400 group-hover:text-pink-300 group-hover:border-pink-400 transition-all"><i class="fa-solid fa-heart text-xl"></i></div>
+                            <div><h4 class="text-gray-200 font-serif">Love & Relationship</h4><p class="text-[10px] text-gray-500 mt-1">Attraction, Compatibility</p></div>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-pink-400"></i>
-                    </button>
-                    <button onclick="analyzeTheme('wealth')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+                        <i class="fa-solid fa-arrow-right-long text-gray-700 group-hover:text-pink-400 transition-all transform group-hover:translate-x-1"></i>
+                    </div>
+
+                    <div onclick="analyzeTheme('wealth')" class="mystic-card bg-paper p-5 flex items-center justify-between cursor-pointer group rounded-xl">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-yellow-400 group-hover:border-yellow-400 transition-colors"><i class="fa-solid fa-coins"></i></div>
-                            <div><h4 class="text-gray-200 font-serif text-sm">Wealth & Asset</h4><p class="text-[10px] text-gray-500">Money flow, Investment</p></div>
+                            <div class="w-12 h-12 rounded-full bg-black border border-gray-700 flex items-center justify-center text-yellow-400 group-hover:text-yellow-300 group-hover:border-yellow-400 transition-all"><i class="fa-solid fa-coins text-xl"></i></div>
+                            <div><h4 class="text-gray-200 font-serif">Wealth & Asset</h4><p class="text-[10px] text-gray-500 mt-1">Financial Flow, Success</p></div>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-yellow-400"></i>
-                    </button>
-                    <button onclick="analyzeTheme('career')" class="mystic-card bg-paper p-4 flex items-center justify-between group text-left">
+                        <i class="fa-solid fa-arrow-right-long text-gray-700 group-hover:text-yellow-400 transition-all transform group-hover:translate-x-1"></i>
+                    </div>
+
+                    <div onclick="analyzeTheme('career')" class="mystic-card bg-paper p-5 flex items-center justify-between cursor-pointer group rounded-xl">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-blue-400 group-hover:border-blue-400 transition-colors"><i class="fa-solid fa-briefcase"></i></div>
-                            <div><h4 class="text-gray-200 font-serif text-sm">Career & Path</h4><p class="text-[10px] text-gray-500">Job aptitude, Success</p></div>
+                            <div class="w-12 h-12 rounded-full bg-black border border-gray-700 flex items-center justify-center text-blue-400 group-hover:text-blue-300 group-hover:border-blue-400 transition-all"><i class="fa-solid fa-briefcase text-xl"></i></div>
+                            <div><h4 class="text-gray-200 font-serif">Career & Path</h4><p class="text-[10px] text-gray-500 mt-1">Growth, Strategy</p></div>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-blue-400"></i>
-                    </button>
+                        <i class="fa-solid fa-arrow-right-long text-gray-700 group-hover:text-blue-400 transition-all transform group-hover:translate-x-1"></i>
+                    </div>
                 </div>
-                <div id="themeResultArea" class="hidden mt-4 bg-black/40 border border-jade/30 p-6 fade-in">
+
+                <!-- AI Result Area -->
+                <div id="themeResultArea" class="hidden mt-6 bg-black/60 border border-jade/30 p-6 rounded-xl fade-in relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-quote-right text-4xl text-jade"></i></div>
                     <h4 id="themeTitle" class="text-jade text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2">Analysis</h4>
                     <div id="aiContent" class="text-gray-300 text-sm font-light leading-7 whitespace-pre-line font-serif"></div>
                 </div>
             </div>
 
-            <div>
-                <button onclick="alert('Invite a friend feature is coming soon!')" class="w-full border border-gray-700 bg-gradient-to-r from-gray-900 to-black p-6 flex items-center justify-center gap-3 hover:border-jade transition-colors group">
-                    <span class="text-gray-400 font-serif italic group-hover:text-white transition-colors">Check Compatibility</span>
-                    <i class="fa-solid fa-infinity text-gray-600 group-hover:text-jade"></i>
-                </button>
-            </div>
-            <button onclick="window.location.href='/'" class="mt-8 text-xs text-gray-600 hover:text-jade text-center w-full uppercase tracking-widest">Reset / New Analysis</button>
+            <button onclick="window.location.href='/'" class="text-xs text-gray-600 hover:text-jade text-center w-full uppercase tracking-widest pb-10">Start New Analysis</button>
         </div>
     </div>
 
     <script>
+        // --- Global Variables ---
         let currentInputData = null;
+        let currentRecordId = null;
         const urlParams = new URLSearchParams(window.location.search);
         const recordId = urlParams.get('id');
-        let loadingInterval;
-        const loadingMessages = ["Aligning Energy...", "Reading Celestial Stems...", "Consulting the Oracle...", "Decoding Blueprint..."];
+        let searchTimeout = null;
 
+        // --- Initialization ---
         try {
             const now = new Date();
-            const dateInput = document.getElementById('birth_date');
-            const timeInput = document.getElementById('birth_time');
-            if (dateInput) dateInput.valueAsDate = now;
-            if (timeInput) timeInput.value = now.toTimeString().substring(0,5);
+            document.getElementById('birth_date').valueAsDate = now;
+
+            // Set Default Time (Current Time)
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const isPm = hours >= 12;
+            hours = hours % 12;
+            hours = hours ? hours : 12; // hour '0' should be '12'
+
+            document.getElementById('time_hour').value = hours;
+            document.getElementById('time_min').value = minutes < 10 ? '0'+minutes : minutes;
+            document.getElementById('ampm_btn').textContent = isPm ? 'PM' : 'AM';
+
         } catch(e) {}
 
-        function enterApp() {
-            const intro = document.getElementById('introSection');
-            const input = document.getElementById('inputSection');
-            const header = document.getElementById('mainHeader');
-
-            intro.classList.add('fade-out');
-            setTimeout(() => {
-                intro.classList.add('hidden');
-                header.classList.remove('hidden');
-                input.classList.remove('hidden');
-                input.style.display = 'flex';
-            }, 800);
-        }
-
-        function showLoading() {
-            document.getElementById('loading').classList.remove('hidden');
-            let i = 0;
-            const textEl = document.getElementById('loadingText');
-            textEl.textContent = loadingMessages[0];
-            loadingInterval = setInterval(() => { i = (i + 1) % loadingMessages.length; textEl.textContent = loadingMessages[i]; }, 800);
-        }
-        function hideLoading() {
-            document.getElementById('loading').classList.add('hidden');
-            clearInterval(loadingInterval);
-        }
-
-        async function startAnalysis() {
-            const bDate = document.getElementById('birth_date').value;
-            const bTime = document.getElementById('birth_time').value;
-            if(!bDate || !bTime) { alert("Please complete all fields."); return; }
-
-            currentInputData = {
-                birth_date: bDate, birth_time: bTime,
-                timezone: document.getElementById('timezone').value,
-                longitude: parseFloat(document.getElementById('longitude').value),
-                latitude: 0.0, include_analysis: false
-            };
-
-            showLoading();
-            try {
-                const response = await fetch('/saju', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentInputData)
-                });
-                if (!response.ok) throw new Error("Server Error");
-                const data = await response.json();
-                if(data.record_id) {
-                    const newUrl = `${window.location.pathname}?id=${data.record_id}`;
-                    window.history.pushState({path: newUrl}, '', newUrl);
-                    renderDashboard(data);
-                    fetchDailyFortune(data.record_id);
-                }
-            } catch (err) { alert('Connection Failed: ' + err.message); } finally { hideLoading(); }
-        }
-
-        function renderDashboard(data) {
-            document.getElementById('introSection').classList.add('hidden'); // Ensure intro is hidden
-            document.getElementById('inputSection').classList.add('hidden');
-            document.getElementById('mainHeader').classList.remove('hidden');
-            document.getElementById('resultSection').classList.remove('hidden');
-            document.getElementById('resultSection').style.display = 'flex';
-            const dayPillar = data.saju.day;
-            const stemMap = {'甲':'Yang Wood', '乙':'Yin Wood', '丙':'Yang Fire', '丁':'Yin Fire', '戊':'Yang Earth', '己':'Yin Earth', '庚':'Yang Metal', '辛':'Yin Metal', '壬':'Yang Water', '癸':'Yin Water'};
-            const branchMap = {'子':'Rat', '丑':'Ox', '寅':'Tiger', '卯':'Rabbit', '辰':'Dragon', '巳':'Snake', '午':'Horse', '未':'Sheep', '申':'Monkey', '酉':'Rooster', '戌':'Dog', '亥':'Pig'};
-            const engTitle = `${stemMap[dayPillar[0]] || dayPillar[0]} ${branchMap[dayPillar[1]] || dayPillar[1]}`;
-            document.getElementById('dayMaster').textContent = engTitle;
-        }
-
-        async function fetchDailyFortune(recordId) {
-            try {
-                const res = await fetch(`/fortune/daily/${recordId}`);
-                if(!res.ok) throw new Error("Fortune Failed");
-                const data = await res.json();
-                document.getElementById('fortuneScore').textContent = data.score;
-                document.getElementById('fortuneRelation').textContent = data.relation;
-                document.getElementById('fortuneAdvice').textContent = data.advice;
-            } catch(e) { console.error(e); }
-        }
-
-        async function analyzeTheme(theme) {
-            if (!currentInputData) return;
-            const resultArea = document.getElementById('themeResultArea');
-            const content = document.getElementById('aiContent');
-            const title = document.getElementById('themeTitle');
-            resultArea.classList.remove('hidden');
-            title.textContent = `${theme.toUpperCase()} ANALYSIS`;
-            content.textContent = "Consulting the AI Oracle...";
-
-            const payload = { ...currentInputData, include_analysis: true, theme: theme };
-            try {
-                const response = await fetch('/saju', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (data.analysis) {
-                    content.innerText = data.analysis.replace(/\*\*/g, '').replace(/###/g, '');
-                    resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            } catch (err) { content.textContent = "The connection to the oracle was interrupted."; }
-        }
-
-        async function fetchRecord(id) {
-            showLoading();
-            try {
-                const response = await fetch(`/saju/${id}`);
-                if (!response.ok) throw new Error("Record not found");
-                const data = await response.json();
-                currentInputData = { ...data.input, include_analysis: false };
-                renderDashboard(data);
-                fetchDailyFortune(id);
-            } catch (err) { window.location.href = '/'; } finally { hideLoading(); }
-        }
-
         if (recordId) {
-            // 공유 링크로 들어왔을 때는 인트로 생략하고 바로 결과 보여줌
             document.getElementById('introSection').classList.add('hidden');
             fetchRecord(recordId);
         }
 
-        document.getElementById('timezone').addEventListener('change', function(e) {
-            const tz = e.target.value;
-            const longInput = document.getElementById('longitude');
-            if(tz === 'Asia/Seoul') longInput.value = 127.0;
-            if(tz === 'America/New_York') longInput.value = -74.0060;
-            if(tz === 'America/Los_Angeles') longInput.value = -118.2437;
-            if(tz === 'Europe/London') longInput.value = -0.1276;
-        });
+        // --- Functions ---
+
+        // 1. Enter App
+        function enterApp() {
+            const intro = document.getElementById('introSection');
+            intro.classList.add('fade-out');
+            setTimeout(() => {
+                intro.classList.add('hidden');
+                document.getElementById('mainHeader').classList.remove('hidden');
+                document.getElementById('inputSection').classList.remove('hidden');
+                document.getElementById('inputSection').style.display = 'flex';
+            }, 800);
+        }
+
+        // 2. Toggle AM/PM
+        function toggleAmPm() {
+            const btn = document.getElementById('ampm_btn');
+            btn.textContent = btn.textContent === 'AM' ? 'PM' : 'AM';
+        }
+
+        // 3. Location Search (OpenStreetMap Nominatim)
+        async function searchLocation(query) {
+            const resultsList = document.getElementById('locationResults');
+
+            if (query.length < 3) {
+                resultsList.classList.add('hidden');
+                return;
+            }
+
+            // Debounce
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`);
+                    const data = await res.json();
+
+                    resultsList.innerHTML = '';
+                    if (data.length > 0) {
+                        resultsList.classList.remove('hidden');
+                        data.forEach(item => {
+                            const li = document.createElement('li');
+                            li.className = "p-3 border-b border-gray-700 cursor-pointer";
+                            // Show simple name
+                            const displayName = item.display_name.split(',').slice(0,2).join(',');
+                            li.textContent = displayName;
+                            li.onclick = () => selectLocation(displayName, item.lon, "America/New_York"); // Timezone은 일단 기본값 사용 (실제론 위경도로 TZ 조회 필요)
+                            resultsList.appendChild(li);
+                        });
+                    }
+                } catch(e) { console.error("Search Error", e); }
+            }, 500);
+        }
+
+        function selectLocation(name, lon, tz) {
+            document.getElementById('location_search').value = name;
+            document.getElementById('longitude').value = parseFloat(lon);
+            // Timezone 처리는 복잡하므로 일단 입력받은 도시명만 UI에 표시하고
+            // 서버에서는 Longitude 기반 진태양시 보정을 주로 사용함.
+            // 정확한 TZ가 필요하면 Google Maps API 등이 필요함.
+            document.getElementById('locationResults').classList.add('hidden');
+        }
+
+        // 4. Start Analysis
+        async function startAnalysis() {
+            const bDate = document.getElementById('birth_date').value;
+
+            // Construct Time 24h format
+            let hour = parseInt(document.getElementById('time_hour').value);
+            const min = document.getElementById('time_min').value;
+            const ampm = document.getElementById('ampm_btn').textContent;
+
+            if(!bDate || !hour || !min) return alert("Please fill all details");
+
+            if (ampm === 'PM' && hour < 12) hour += 12;
+            if (ampm === 'AM' && hour === 12) hour = 0;
+
+            const bTime = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+
+            currentInputData = {
+                birth_date: bDate, birth_time: bTime,
+                timezone: document.getElementById('timezone').value, // Hidden input logic
+                longitude: parseFloat(document.getElementById('longitude').value),
+                latitude: 0.0, include_analysis: false, theme: "general"
+            };
+
+            showLoading();
+            try {
+                const res = await fetch('/saju', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentInputData)
+                });
+                if(!res.ok) throw new Error();
+                const data = await res.json();
+
+                if(data.record_id) {
+                    currentRecordId = data.record_id;
+                    const newUrl = `${window.location.pathname}?id=${data.record_id}`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
+                    renderDashboard(data);
+                    switchTab('daily');
+                }
+            } catch(e) { alert("Connection Error"); } finally { hideLoading(); }
+        }
+
+        // 5. Render Dashboard
+        function renderDashboard(data) {
+            document.getElementById('inputSection').classList.add('hidden');
+            document.getElementById('mainHeader').classList.remove('hidden'); // Ensure header is visible
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('resultSection').style.display = 'flex';
+
+            const dp = data.saju.day;
+            const stemMap = {'甲':'Yang Wood', '乙':'Yin Wood', '丙':'Yang Fire', '丁':'Yin Fire', '戊':'Yang Earth', '己':'Yin Earth', '庚':'Yang Metal', '辛':'Yin Metal', '壬':'Yang Water', '癸':'Yin Water'};
+            const branchMap = {'子':'Rat', '丑':'Ox', '寅':'Tiger', '卯':'Rabbit', '辰':'Dragon', '巳':'Snake', '午':'Horse', '未':'Sheep', '申':'Monkey', '酉':'Rooster', '戌':'Dog', '亥':'Pig'};
+            document.getElementById('dayMaster').textContent = `${stemMap[dp[0]]||dp[0]} ${branchMap[dp[1]]||dp[1]}`;
+        }
+
+        // 6. Switch Tab (Daily/Weekly...)
+        async function switchTab(period) {
+            if(!currentRecordId) return;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-white');
+                btn.classList.add('text-gray-500');
+            });
+            document.getElementById(`tab-${period}`).classList.add('active', 'text-white');
+
+            try {
+                const res = await fetch(`/fortune/${period}/${currentRecordId}`);
+                if(!res.ok) throw new Error();
+                const data = await res.json();
+
+                document.getElementById('periodLabel').textContent = data.period;
+                document.getElementById('relationTitle').textContent = data.relation_title;
+                document.getElementById('fortuneAdvice').textContent = data.advice;
+                document.getElementById('fortuneScore').textContent = data.score;
+
+                const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.image_keyword)}?nologo=true&width=800&height=1000&seed=${Math.floor(Math.random()*1000)}`;
+                const imgEl = document.getElementById('fortuneImage');
+                imgEl.style.opacity = 0;
+                setTimeout(() => { imgEl.src = imgUrl; imgEl.onload = () => imgEl.style.opacity = 0.8; }, 300);
+
+            } catch(e) {}
+        }
+
+        // 7. Analyze Theme
+        async function analyzeTheme(theme) {
+            const area = document.getElementById('themeResultArea');
+            const content = document.getElementById('aiContent');
+            const title = document.getElementById('themeTitle');
+
+            area.classList.remove('hidden');
+            title.textContent = `${theme} Analysis`;
+            content.textContent = "Consulting the Oracle...";
+            area.scrollIntoView({behavior:'smooth', block:'start'});
+
+            const payload = { ...currentInputData, include_analysis: true, theme: theme };
+            try {
+                const res = await fetch('/saju', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if(data.analysis) content.innerText = data.analysis.replace(/\*\*/g,'').replace(/###/g,'');
+            } catch(e) { content.textContent = "Connection interrupted."; }
+        }
+
+        // 8. Fetch Record (Shared Link)
+        async function fetchRecord(id) {
+            try {
+                const res = await fetch(`/saju/${id}`);
+                if(!res.ok) throw new Error();
+                const data = await res.json();
+                currentInputData = { ...data.input, include_analysis: false };
+                currentRecordId = id;
+                renderDashboard(data);
+                switchTab('daily');
+            } catch(e) { window.location.href = '/'; }
+        }
+
+        // Utils
+        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+        function closeModal() { document.getElementById('shareModal').classList.add('hidden'); }
 
         async function shareResult() {
             const url = window.location.href;
-            const shareData = { title: 'Saju Blueprint', text: 'My Energy Signature', url: url };
-            if (navigator.share) { try { await navigator.share(shareData); return; } catch (e) {} }
-            try { await navigator.clipboard.writeText(url); showModal(url); } catch (e) { showModal(url); }
+            if(navigator.share) { try{await navigator.share({title:'My Saju', url:url}); return;}catch(e){} }
+            try{await navigator.clipboard.writeText(url); document.getElementById('shareUrlText').textContent=url; document.getElementById('shareModal').classList.remove('hidden');}catch(e){}
         }
 
-        function showModal(url) {
-            document.getElementById('shareUrlText').textContent = url;
-            document.getElementById('shareModal').classList.remove('hidden');
-        }
-        function closeModal() { document.getElementById('shareModal').classList.add('hidden'); }
+        // Hide location results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'location_search') {
+                document.getElementById('locationResults').classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>

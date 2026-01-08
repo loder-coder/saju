@@ -10,16 +10,14 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 
-# [수정됨] app 패키지 내부 모듈 가져오기 (구조 변경 반영)
+# 내부 모듈
 from app import models, database
 from app.services.lunar_service import get_lunar_date
-from app.services.saju_engine import calculate_saju, get_today_fortune
+from app.services.saju_engine import calculate_saju, get_fortune_by_period
 from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
 
 load_dotenv()
-
-# DB 생성
 models.Base.metadata.create_all(bind=database.engine)
 
 limiter = Limiter(key_func=get_remote_address)
@@ -27,22 +25,19 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# 정적 파일 & 템플릿 설정
-if not os.path.exists("static"):
-    os.makedirs("static")
+if not os.path.exists("static"): os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
 
 class SajuRequest(BaseModel):
-    birth_date: str = Field(..., description="YYYY-MM-DD")
-    birth_time: str = Field(..., description="HH:MM")
-    timezone: str = Field("Asia/Seoul")
-    longitude: float = Field(127.0)
-    latitude: float = Field(37.5)
-    include_analysis: bool = Field(False)
-    theme: str = Field("general", description="Analysis theme")
+    birth_date: str
+    birth_time: str
+    timezone: str
+    longitude: float
+    latitude: float
+    include_analysis: bool
+    theme: str
 
 
 @app.get("/")
@@ -51,67 +46,67 @@ def home(request: Request):
 
 
 @app.post("/saju")
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends(database.get_db)):
     try:
-        year, month, day = map(int, payload.birth_date.split("-"))
-        hour, minute = map(int, payload.birth_time.split(":"))
+        y, m, d = map(int, payload.birth_date.split("-"))
+        h, mn = map(int, payload.birth_time.split(":"))
 
-        lunar_data = get_lunar_date(year, month, day, hour, minute, payload.timezone, payload.longitude)
-        adjusted_hour = lunar_data["solar"]["hour"]
-        adjusted_minute = lunar_data["solar"]["minute"]
-        saju_data = calculate_saju(lunar_data["lunar"]["year"], lunar_data["lunar"]["month"],
-                                   lunar_data["lunar"]["day"], adjusted_hour, adjusted_minute)
+        lunar = get_lunar_date(y, m, d, h, mn, payload.timezone, payload.longitude)
+        # lunar_data 구조에 맞춰 시간 보정값 사용
+        adj_h = lunar["solar"]["hour"]
+        adj_m = lunar["solar"]["minute"]
 
-        response_data = {
+        saju = calculate_saju(lunar["lunar"]["year"], lunar["lunar"]["month"], lunar["lunar"]["day"], adj_h, adj_m)
+
+        res_data = {
             "input": payload.dict(),
-            "adjusted_time": lunar_data["solar"],
-            "lunar": lunar_data["lunar"],
-            "saju": saju_data["pillars"],
-            "elements": saju_data["elements"],
+            "lunar": lunar["lunar"],
+            "saju": saju["pillars"],
+            "elements": saju["elements"],
             "analysis": None
         }
 
         if payload.include_analysis:
-            full_saju_context = {"saju": saju_data}
-            prompt = build_saju_prompt(full_saju_context, theme=payload.theme)
-            analysis_result = get_ai_analysis(prompt)
-            response_data["analysis"] = analysis_result
+            full_context = {"saju": saju}
+            prompt = build_saju_prompt(full_context, theme=payload.theme)
+            res_data["analysis"] = get_ai_analysis(prompt)
 
-        day_pillar_en = translate_pillar(saju_data["pillars"]["day"])
+        day_pillar = translate_pillar(saju["pillars"]["day"])
         new_record = models.SajuRecord(
             birth_date=payload.birth_date, birth_time=payload.birth_time, timezone=payload.timezone,
-            longitude=payload.longitude, day_master=day_pillar_en, result_json=response_data
+            longitude=payload.longitude, day_master=day_pillar, result_json=res_data
         )
         db.add(new_record)
         db.commit()
         db.refresh(new_record)
-        response_data["record_id"] = new_record.id
-        return response_data
+        res_data["record_id"] = new_record.id
+        return res_data
     except Exception as e:
-        print(f"Error processing saju: {e}")
+        print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/saju/{record_id}")
-def get_saju_record(record_id: int, db: Session = Depends(database.get_db)):
-    record = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="Record not found")
-    return record.result_json
+def get_record(record_id: int, db: Session = Depends(database.get_db)):
+    rec = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
+    if not rec: raise HTTPException(status_code=404, detail="Not found")
+    return rec.result_json
 
 
-@app.get("/fortune/daily/{record_id}")
-def get_daily_fortune_api(record_id: int, db: Session = Depends(database.get_db)):
-    record = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="Record not found")
+# [NEW] 기간별 운세 통합 API
+@app.get("/fortune/{period}/{record_id}")
+def get_period_fortune(period: str, record_id: int, db: Session = Depends(database.get_db)):
+    rec = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
+    if not rec: raise HTTPException(status_code=404, detail="Not found")
+
     try:
-        user_day_gan = record.result_json["saju"]["day"][0]
-        fortune = get_today_fortune(user_day_gan)
+        user_gan = rec.result_json["saju"]["day"][0]
+        # saju_engine의 함수 호출
+        fortune = get_fortune_by_period(user_gan, period)
         return fortune
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fortune calculation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/manifest.json")

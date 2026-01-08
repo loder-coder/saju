@@ -1,44 +1,36 @@
 from lunar_python import Lunar, Solar
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# 오행 매핑
+# 오행 및 십성 매핑 (영어)
 FIVE_ELEMENTS = {
-    "甲": "Wood", "乙": "Wood", "丙": "Fire", "丁": "Fire",
-    "戊": "Earth", "己": "Earth", "庚": "Metal", "辛": "Metal",
-    "壬": "Water", "癸": "Water",
-    "寅": "Wood", "卯": "Wood", "巳": "Fire", "午": "Fire",
-    "辰": "Earth", "戌": "Earth", "丑": "Earth", "未": "Earth",
-    "申": "Metal", "酉": "Metal", "亥": "Water", "子": "Water"
+    "甲": "Wood", "乙": "Wood", "丙": "Fire", "丁": "Fire", "戊": "Earth",
+    "己": "Earth", "庚": "Metal", "辛": "Metal", "壬": "Water", "癸": "Water",
+    "寅": "Wood", "卯": "Wood", "巳": "Fire", "午": "Fire", "辰": "Earth",
+    "戌": "Earth", "丑": "Earth", "未": "Earth", "申": "Metal", "酉": "Metal",
+    "亥": "Water", "子": "Water"
 }
 
-# 십성(Ten Gods) 관계 매핑 (English Only)
-# (User Element, Today Element) -> Relation
 RELATIONS = {
-    # 비겁 (Same Element)
-    ("Wood", "Wood"): "Friend (Parallel)", ("Fire", "Fire"): "Friend (Parallel)",
-    ("Earth", "Earth"): "Friend (Parallel)", ("Metal", "Metal"): "Friend (Parallel)",
-    ("Water", "Water"): "Friend (Parallel)",
+    ("Wood", "Wood"): "Friend", ("Wood", "Fire"): "Expression", ("Wood", "Earth"): "Wealth",
+    ("Wood", "Metal"): "Career", ("Wood", "Water"): "Support",
+    ("Fire", "Fire"): "Friend", ("Fire", "Earth"): "Expression", ("Fire", "Metal"): "Wealth",
+    ("Fire", "Water"): "Career", ("Fire", "Wood"): "Support",
+    ("Earth", "Earth"): "Friend", ("Earth", "Metal"): "Expression", ("Earth", "Water"): "Wealth",
+    ("Earth", "Wood"): "Career", ("Earth", "Fire"): "Support",
+    ("Metal", "Metal"): "Friend", ("Metal", "Water"): "Expression", ("Metal", "Wood"): "Wealth",
+    ("Metal", "Fire"): "Career", ("Metal", "Earth"): "Support",
+    ("Water", "Water"): "Friend", ("Water", "Wood"): "Expression", ("Water", "Fire"): "Wealth",
+    ("Water", "Earth"): "Career", ("Water", "Metal"): "Support",
+}
 
-    # 식상 (Output)
-    ("Wood", "Fire"): "Output (Expression)", ("Fire", "Earth"): "Output (Expression)",
-    ("Earth", "Metal"): "Output (Expression)", ("Metal", "Water"): "Output (Expression)",
-    ("Water", "Wood"): "Output (Expression)",
-
-    # 재성 (Wealth)
-    ("Wood", "Earth"): "Wealth (Goal)", ("Fire", "Metal"): "Wealth (Goal)",
-    ("Earth", "Water"): "Wealth (Goal)", ("Metal", "Wood"): "Wealth (Goal)",
-    ("Water", "Fire"): "Wealth (Goal)",
-
-    # 관성 (Career/Power)
-    ("Wood", "Metal"): "Career (Discipline)", ("Fire", "Water"): "Career (Discipline)",
-    ("Earth", "Wood"): "Career (Discipline)", ("Metal", "Fire"): "Career (Discipline)",
-    ("Water", "Earth"): "Career (Discipline)",
-
-    # 인성 (Resource/Support)
-    ("Wood", "Water"): "Resource (Support)", ("Fire", "Wood"): "Resource (Support)",
-    ("Earth", "Fire"): "Resource (Support)", ("Metal", "Earth"): "Resource (Support)",
-    ("Water", "Metal"): "Resource (Support)",
+# 이미지 생성을 위한 비주얼 키워드 매핑
+VISUAL_KEYWORDS = {
+    "Friend": "forest gathering, harmony, mirror reflection, twin souls, mystical teal light",
+    "Expression": "blooming flowers, creative splash, phoenix rising, vibrant art, dynamic motion",
+    "Wealth": "golden coins, treasure chest, luxurious palace, overflowing harvest, golden light",
+    "Career": "tall mountain peak, iron throne, structured geometry, chess board, blue icy focus",
+    "Support": "ancient library, cozy shelter, mother earth, flowing river, warm lantern light"
 }
 
 
@@ -51,74 +43,84 @@ def analyze_elements(saju_dict: dict):
     for pillar in ["year", "month", "day", "time"]:
         elements.append(get_element(saju_dict[pillar][0]))
         elements.append(get_element(saju_dict[pillar][1]))
-
     counts = Counter(elements)
     result = {"Wood": 0, "Fire": 0, "Earth": 0, "Metal": 0, "Water": 0}
     result.update(counts)
     return result
 
 
-def calculate_saju(lunar_year: int, lunar_month: int, lunar_day: int, hour: int, minute: int):
+def calculate_saju(lunar_year, lunar_month, lunar_day, hour, minute):
     lunar = Lunar.fromYmdHms(lunar_year, lunar_month, lunar_day, hour, minute, 0)
-    eight_char = lunar.getEightChar()
-
-    saju_result = {
-        "year": eight_char.getYearGan() + eight_char.getYearZhi(),
-        "month": eight_char.getMonthGan() + eight_char.getMonthZhi(),
-        "day": eight_char.getDayGan() + eight_char.getDayZhi(),
-        "time": eight_char.getTimeGan() + eight_char.getTimeZhi()
+    eight = lunar.getEightChar()
+    saju = {
+        "year": eight.getYearGan() + eight.getYearZhi(),
+        "month": eight.getMonthGan() + eight.getMonthZhi(),
+        "day": eight.getDayGan() + eight.getDayZhi(),
+        "time": eight.getTimeGan() + eight.getTimeZhi()
     }
-
-    return {
-        "pillars": saju_result,
-        "elements": analyze_elements(saju_result)
-    }
+    return {"pillars": saju, "elements": analyze_elements(saju)}
 
 
-def get_today_fortune(user_day_master_gan: str):
+def get_fortune_by_period(user_day_gan: str, period: str):
     """
-    오늘의 운세 계산 (일진법)
+    기간별 운세 로직
+    period: 'daily', 'weekly', 'monthly', 'yearly'
     """
-    # 오늘 날짜
     now = datetime.now()
-    solar = Solar.fromYmd(now.year, now.month, now.day)
-    lunar = solar.getLunar()
+    user_elm = get_element(user_day_gan)
 
-    # 오늘의 일진 (예: 甲子)
-    today_gan = lunar.getEightChar().getDayGan()
-    today_zhi = lunar.getEightChar().getDayZhi()
+    # 1. 비교 대상 날짜/연도 설정
+    if period == 'yearly':
+        # 올해의 입춘 기준 (간략화: 현재 연도)
+        target_solar = Solar.fromYmd(now.year, 2, 4)
+        period_name = f"{now.year} Flow"
+    elif period == 'monthly':
+        target_solar = Solar.fromYmd(now.year, now.month, 15)  # 월 중간값
+        period_name = f"{now.strftime('%B')} Flow"
+    elif period == 'weekly':
+        target_solar = Solar.fromYmd(now.year, now.month, now.day + 3)  # 주 중간값
+        period_name = "This Week's Flow"
+    else:  # daily
+        target_solar = Solar.fromYmd(now.year, now.month, now.day)
+        period_name = "Today's Flow"
 
-    user_elm = get_element(user_day_master_gan)
-    today_elm = get_element(today_gan)
+    lunar = target_solar.getLunar()
+    eight = lunar.getEightChar()
 
-    relation = RELATIONS.get((user_elm, today_elm), "Unknown")
+    # 2. 비교 대상 글자 (운세의 주체)
+    if period == 'yearly':
+        target_char = eight.getYearGan()  # 세운 천간
+    elif period == 'monthly':
+        target_char = eight.getMonthGan()  # 월운 천간
+    else:
+        target_char = eight.getDayGan()  # 일운 천간
 
-    # 간단한 점수 및 조언 로직
-    score = 70  # 기본점수
-    advice = ""
+    target_elm = get_element(target_char)
+    relation = RELATIONS.get((user_elm, target_elm), "Unknown")
 
-    if "Wealth" in relation:
-        score = 90
-        advice = "Excellent day for financial decisions!"
-    elif "Resource" in relation:
-        score = 85
-        advice = "Great day for learning and receiving help."
-    elif "Output" in relation:
-        score = 80
-        advice = "Good day for creativity and self-expression."
-    elif "Friend" in relation:
-        score = 75
-        advice = "Good for networking, but watch out for competition."
-    elif "Career" in relation:
-        score = 60
-        advice = "You might feel pressure today. Stay calm."
+    # 3. 점수 및 키워드 생성
+    score_map = {"Wealth": 92, "Support": 88, "Expression": 85, "Friend": 75, "Career": 65}
+    score = score_map.get(relation, 70)
+
+    # 랜덤성을 위해 날짜 기반 미세 조정
+    date_seed = (now.year + now.month + now.day) % 10
+    final_score = min(100, score + date_seed - 5)
+
+    visual_prompt = VISUAL_KEYWORDS.get(relation, "mystical fog, mystery, stars")
+
+    # 조언
+    advices = {
+        "Wealth": "Focus on results. Abundance is near.",
+        "Support": "A good time to learn and rest.",
+        "Expression": "Show your talent. Be bold.",
+        "Friend": "Connect with others, but stay independent.",
+        "Career": "Face challenges calmly. Discipline is key."
+    }
 
     return {
-        "date": now.strftime("%Y-%m-%d"),
-        "today_pillar": f"{today_gan}{today_zhi}",
-        "user_element": user_elm,
-        "today_element": today_elm,
-        "relation": relation,
-        "score": score,
-        "advice": advice
+        "period": period_name,
+        "relation_title": relation.upper(),
+        "score": final_score,
+        "advice": advices.get(relation, "Trust your intuition."),
+        "image_keyword": f"{visual_prompt}, cinematic lighting, high quality, 8k, oriental fantasy style"
     }
