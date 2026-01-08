@@ -9,7 +9,7 @@ from app.services.saju_engine import calculate_saju
 from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
 
-# 같은 위치에 있는 모듈들 (수정됨)
+# 같은 위치에 있는 모듈들
 import models
 import database
 
@@ -105,3 +105,14 @@ def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db))
     except Exception as e:
         print(f"Error processing saju: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# [추가된 API] ID로 기록 조회하기
+@app.get("/saju/{record_id}")
+def get_saju_record(record_id: int, db: Session = Depends(database.get_db)):
+    record = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    # DB에 저장된 JSON 그대로 리턴
+    return record.result_json
