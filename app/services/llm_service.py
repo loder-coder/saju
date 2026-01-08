@@ -57,6 +57,5 @@ def _call_gemini(prompt: str):
         )
         return response.text
     except Exception as e:
-        # 1.5로 재시도하는 안전장치(Fallback) 제거함
         # 에러 발생 시 원인 바로 확인 가능
         return f"Gemini API Error: {str(e)}"

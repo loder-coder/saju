@@ -7,6 +7,8 @@ def get_apparent_solar_time(year: int, month: int, day: int, hour: int, minute: 
                             longitude: float):
     """
     입력받은 지역 표준시(Local Time)를 진태양시(Apparent Solar Time)로 변환
+    :param timezone_str: 예) "America/New_York", "Asia/Seoul"
+    :param longitude: 경도 (동경 +, 서경 -) 예) 서울 127.0, 뉴욕 -74.0
     """
     try:
         # 1. 입력받은 시간을 해당 Timezone의 datetime 객체로 생성
@@ -22,6 +24,7 @@ def get_apparent_solar_time(year: int, month: int, day: int, hour: int, minute: 
         solar_correction_minutes = longitude * 4
         solar_dt = utc_dt + datetime.timedelta(minutes=solar_correction_minutes)
 
+        # *주의: solar_dt는 이제 "해당 지역의 태양 기준 시각"임.
         return solar_dt.year, solar_dt.month, solar_dt.day, solar_dt.hour, solar_dt.minute
 
     except Exception as e:

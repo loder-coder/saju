@@ -12,6 +12,7 @@ from app.services.saju_engine import calculate_saju, get_today_fortune
 from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
 
+# 같은 위치에 있는 모듈들
 import models
 import database
 import os
@@ -23,7 +24,7 @@ load_dotenv()
 # DB 생성
 models.Base.metadata.create_all(bind=database.engine)
 
-# [보안] Rate Limiter 설정 (IP당 하루 50회 제한)
+# [보안] Rate Limiter 설정 (IP당 분당 5회 제한)
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI()
@@ -31,7 +32,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# ... (SajuRequest 클래스는 동일) ...
 class SajuRequest(BaseModel):
     birth_date: str = Field(..., description="YYYY-MM-DD format")
     birth_time: str = Field(..., description="HH:MM format")
@@ -50,8 +50,6 @@ def health():
 @app.post("/saju")
 @limiter.limit("5/minute")
 def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends(database.get_db)):
-    # ... (기존 사주 로직 동일) ...
-    # ... (중략: lunar_data, saju_data 계산) ...
     try:
         year, month, day = map(int, payload.birth_date.split("-"))
         hour, minute = map(int, payload.birth_time.split(":"))
@@ -88,7 +86,7 @@ def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends
         response_data["record_id"] = new_record.id
         return response_data
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error processing saju: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -100,34 +98,23 @@ def get_saju_record(record_id: int, db: Session = Depends(database.get_db)):
     return record.result_json
 
 
-# [NEW] 오늘의 운세 API
+# 오늘의 운세 API
 @app.get("/fortune/daily/{record_id}")
 def get_daily_fortune_api(record_id: int, db: Session = Depends(database.get_db)):
     record = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
     if not record:
-        raise HTTPException(status_code=404, detail="User record not found")
+        raise HTTPException(status_code=404, detail="Record not found")
 
-    # DB에 저장된 사주 데이터에서 '일간(Day Gan)' 추출
-    # 저장된 JSON 구조: record.result_json['saju']['day'] -> "戊寅"
     try:
-        day_pillar = record.result_json['saju']['day']  # "戊寅"
-        day_gan = day_pillar[0]  # "戊"
-
-        today_str = str(date.today())
-        fortune = get_today_fortune(day_gan, today_str)
-
+        # result_json -> saju -> day -> 첫 글자 (예: "甲")
+        user_day_gan = record.result_json["saju"]["day"][0]
+        fortune = get_today_fortune(user_day_gan)
         return fortune
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fortune Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fortune calculation failed: {str(e)}")
 
 
 # [PWA] manifest.json 서빙
 @app.get("/manifest.json")
 def get_manifest():
     return FileResponse("manifest.json")
-
-
-# [PWA] Service Worker 서빙
-@app.get("/sw.js")
-def get_sw():
-    return FileResponse("sw.js")

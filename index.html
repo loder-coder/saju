@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="manifest" href="/manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
     <title>Elemental Blueprint</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -67,7 +68,6 @@
                 <i class="fa-solid fa-compass text-accent"></i> Enter Details
             </h2>
 
-            <!-- form 태그의 기능을 죽이고 div처럼 씀 -->
             <form id="sajuForm" class="space-y-5" onsubmit="return false;">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -105,7 +105,6 @@
                     <i class="fa-solid fa-wand-magic-sparkles text-accent"></i>
                 </div>
 
-                <!-- type="button"으로 변경하고 onclick 이벤트 직접 연결 -->
                 <button type="button" onclick="startAnalysis()"
                     class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-violet-900/20 transform transition hover:scale-[1.01] active:scale-95 text-lg">
                     Reveal My Blueprint
@@ -127,6 +126,27 @@
                     <p id="birthDetails" class="text-gray-400 text-sm font-mono"></p>
                 </div>
                 <div class="p-6 md:p-8 space-y-8">
+
+                    <!-- Today's Fortune Card -->
+                    <div id="dailyFortuneSection" class="hidden bg-gradient-to-br from-yellow-900/30 to-amber-900/30 rounded-2xl p-6 border border-yellow-500/30 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <i class="fa-solid fa-sun text-6xl text-yellow-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-yellow-400 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> Today's Energy Forecast
+                        </h3>
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <div class="flex-shrink-0">
+                                <span id="fortuneScore" class="text-4xl font-bold text-white">--</span>
+                                <span class="text-sm text-gray-400">/100</span>
+                            </div>
+                            <div class="flex-1">
+                                <p id="fortuneRelation" class="text-sm font-mono text-yellow-200/80 mb-1">Checking...</p>
+                                <p id="fortuneAdvice" class="text-gray-200 font-light">Loading today's luck...</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                             <i class="fa-solid fa-chart-simple text-gray-400"></i> Elemental Balance
@@ -146,23 +166,18 @@
     </div>
 
     <script>
-        // 초기화
         const urlParams = new URLSearchParams(window.location.search);
         const recordId = urlParams.get('id');
         let loadingInterval;
         const loadingMessages = ["Aligning the Stars...", "Calculating...", "Consulting AI...", "Almost there..."];
 
-        // JS 로드 확인용 로그
-        console.log("Saju App Initialized");
-
-        // 날짜 기본값 세팅
         try {
             const now = new Date();
             const dateInput = document.getElementById('birth_date');
             const timeInput = document.getElementById('birth_time');
             if (dateInput) dateInput.valueAsDate = now;
             if (timeInput) timeInput.value = now.toTimeString().substring(0,5);
-        } catch(e) { console.error("Date init error", e); }
+        } catch(e) { console.error(e); }
 
         function showLoading() {
             document.getElementById('loading').classList.remove('hidden');
@@ -180,17 +195,10 @@
             clearInterval(loadingInterval);
         }
 
-        // --- 버튼 클릭 시 실행되는 핵심 함수 ---
         async function startAnalysis() {
-            console.log("Analysis Button Clicked"); // 클릭 확인용
-
             const bDate = document.getElementById('birth_date').value;
             const bTime = document.getElementById('birth_time').value;
-
-            if(!bDate || !bTime) {
-                alert("Please select both Date and Time.");
-                return;
-            }
+            if(!bDate || !bTime) { alert("Please select both Date and Time."); return; }
 
             showLoading();
 
@@ -204,7 +212,6 @@
             };
 
             try {
-                // Fetch 요청
                 const response = await fetch('/saju', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -212,28 +219,27 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Server responded with ${response.status}`);
+                    if (response.status === 429) throw new Error("Too many requests! Please wait a minute.");
+                    throw new Error(`Server Error: ${response.status}`);
                 }
-
                 const data = await response.json();
 
-                // URL 업데이트
                 if(data.record_id) {
                     const newUrl = `${window.location.pathname}?id=${data.record_id}`;
                     window.history.pushState({path: newUrl}, '', newUrl);
+                    renderResult(data);
+                    fetchDailyFortune(data.record_id);
+                } else {
+                    renderResult(data);
                 }
 
-                renderResult(data);
-
             } catch (err) {
-                console.error(err);
-                alert('Analysis Failed!\n\nReason: ' + err.message + '\n\nPlease check if the server is running correctly.');
+                alert('Analysis Failed: ' + err.message);
             } finally {
                 hideLoading();
             }
         }
 
-        // 결과 렌더링
         function renderResult(data) {
             document.getElementById('inputSection').classList.add('hidden');
             document.getElementById('resultSection').classList.remove('hidden');
@@ -279,7 +285,25 @@
             }
         }
 
-        // 기록 조회
+        async function fetchDailyFortune(recordId) {
+            const fortuneSection = document.getElementById('dailyFortuneSection');
+            fortuneSection.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/fortune/daily/${recordId}`);
+                if(!res.ok) throw new Error("Fortune Failed");
+                const data = await res.json();
+
+                document.getElementById('fortuneScore').textContent = data.score;
+                document.getElementById('fortuneRelation').textContent = `Energy: ${data.today_element} (${data.relation})`;
+                document.getElementById('fortuneAdvice').textContent = data.advice;
+
+            } catch(e) {
+                console.error(e);
+                fortuneSection.classList.add('hidden');
+            }
+        }
+
         async function fetchRecord(id) {
             showLoading();
             try {
@@ -287,6 +311,7 @@
                 if (!response.ok) throw new Error("Record not found");
                 const data = await response.json();
                 renderResult(data);
+                fetchDailyFortune(id);
             } catch (err) {
                 alert("Could not load record.");
                 window.location.href = '/';
@@ -297,7 +322,6 @@
 
         if (recordId) fetchRecord(recordId);
 
-        // 기타 UI 리스너
         document.getElementById('timezone').addEventListener('change', function(e) {
             const tz = e.target.value;
             const longInput = document.getElementById('longitude');
@@ -307,7 +331,6 @@
             if(tz === 'Europe/London') longInput.value = -0.1276;
         });
 
-        // 공유 기능
         async function shareResult() {
             const url = window.location.href;
             const shareData = { title: 'My Elemental Blueprint', text: 'Check out my energy signature!', url: url };

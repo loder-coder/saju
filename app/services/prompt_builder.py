@@ -74,14 +74,3 @@ def build_saju_prompt(saju_data: dict) -> str:
     """
 
     return prompt.strip()
-
-
-# 테스트용 실행 코드 (나중에 삭제)
-if __name__ == "__main__":
-    test_data = {
-        "saju": {
-            "pillars": {"year": "戊寅", "month": "壬戌", "day": "庚寅", "time": "丁亥"},
-            "elements": {"Wood": 2, "Fire": 1, "Earth": 2, "Metal": 1, "Water": 2}
-        }
-    }
-    print(build_saju_prompt(test_data))

@@ -1,5 +1,6 @@
 from lunar_python import Lunar, Solar
 from collections import Counter
+from datetime import datetime
 
 # 오행 매핑
 FIVE_ELEMENTS = {
@@ -11,23 +12,33 @@ FIVE_ELEMENTS = {
     "申": "Metal", "酉": "Metal", "亥": "Water", "子": "Water"
 }
 
-TEN_GODS = {
-    # 간단한 십성(Ten Gods) 로직: 아생자(식상), 아극자(재성) 등
-    # 실제로는 음양까지 따져야 하지만 MVP용으로 오행 관계만 정의
-    ("Wood", "Wood"): "Friend (비겁)", ("Wood", "Fire"): "Output (식상)",
-    ("Wood", "Earth"): "Wealth (재성)", ("Wood", "Metal"): "Career (관성)", ("Wood", "Water"): "Support (인성)",
+# 십성(Ten Gods) 관계 매핑 (간소화 버전)
+# (User Element, Today Element) -> Relation
+RELATIONS = {
+    # 비겁 (같은 오행): 친구, 경쟁자
+    ("Wood", "Wood"): "Friend (비견/겁재)", ("Fire", "Fire"): "Friend (비견/겁재)",
+    ("Earth", "Earth"): "Friend (비견/겁재)", ("Metal", "Metal"): "Friend (비견/겁재)",
+    ("Water", "Water"): "Friend (비견/겁재)",
 
-    ("Fire", "Fire"): "Friend (비겁)", ("Fire", "Earth"): "Output (식상)",
-    ("Fire", "Metal"): "Wealth (재성)", ("Fire", "Water"): "Career (관성)", ("Fire", "Wood"): "Support (인성)",
+    # 식상 (내가 생하는 오행): 표현, 창의력
+    ("Wood", "Fire"): "Output (식신/상관)", ("Fire", "Earth"): "Output (식신/상관)",
+    ("Earth", "Metal"): "Output (식신/상관)", ("Metal", "Water"): "Output (식신/상관)",
+    ("Water", "Wood"): "Output (식신/상관)",
 
-    ("Earth", "Earth"): "Friend (비겁)", ("Earth", "Metal"): "Output (식상)",
-    ("Earth", "Water"): "Wealth (재성)", ("Earth", "Wood"): "Career (관성)", ("Earth", "Fire"): "Support (인성)",
+    # 재성 (내가 극하는 오행): 재물, 목표
+    ("Wood", "Earth"): "Wealth (편재/정재)", ("Fire", "Metal"): "Wealth (편재/정재)",
+    ("Earth", "Water"): "Wealth (편재/정재)", ("Metal", "Wood"): "Wealth (편재/정재)",
+    ("Water", "Fire"): "Wealth (편재/정재)",
 
-    ("Metal", "Metal"): "Friend (비겁)", ("Metal", "Water"): "Output (식상)",
-    ("Metal", "Wood"): "Wealth (재성)", ("Metal", "Fire"): "Career (관성)", ("Metal", "Earth"): "Support (인성)",
+    # 관성 (나를 극하는 오행): 직장, 명예, 스트레스
+    ("Wood", "Metal"): "Career (편관/정관)", ("Fire", "Water"): "Career (편관/정관)",
+    ("Earth", "Wood"): "Career (편관/정관)", ("Metal", "Fire"): "Career (편관/정관)",
+    ("Water", "Earth"): "Career (편관/정관)",
 
-    ("Water", "Water"): "Friend (비겁)", ("Water", "Wood"): "Output (식상)",
-    ("Water", "Fire"): "Wealth (재성)", ("Water", "Earth"): "Career (관성)", ("Water", "Metal"): "Support (인성)",
+    # 인성 (나를 생하는 오행): 후원, 공부, 문서
+    ("Wood", "Water"): "Support (편인/정인)", ("Fire", "Wood"): "Support (편인/정인)",
+    ("Earth", "Fire"): "Support (편인/정인)", ("Metal", "Earth"): "Support (편인/정인)",
+    ("Water", "Metal"): "Support (편인/정인)",
 }
 
 
@@ -64,29 +75,50 @@ def calculate_saju(lunar_year: int, lunar_month: int, lunar_day: int, hour: int,
     }
 
 
-def get_today_fortune(user_day_master_gan: str, target_date_str: str):
+def get_today_fortune(user_day_master_gan: str):
     """
-    오늘의 운세 로직 (일진법)
-    :param user_day_master_gan: 사용자의 일간 (예: 甲)
-    :param target_date_str: 오늘 날짜 (YYYY-MM-DD)
+    오늘의 운세 계산 (일진법)
     """
-    y, m, d = map(int, target_date_str.split("-"))
-    solar = Solar.fromYmd(y, m, d)
+    # 오늘 날짜
+    now = datetime.now()
+    solar = Solar.fromYmd(now.year, now.month, now.day)
     lunar = solar.getLunar()
-    day_ganzhi = lunar.getEightChar().getDayGan() + lunar.getEightChar().getDayZhi()
 
-    today_gan = day_ganzhi[0]  # 오늘 천간
-    today_zhi = day_ganzhi[1]  # 오늘 지지
+    # 오늘의 일진 (예: 甲子)
+    today_gan = lunar.getEightChar().getDayGan()
+    today_zhi = lunar.getEightChar().getDayZhi()
 
     user_elm = get_element(user_day_master_gan)
     today_elm = get_element(today_gan)
 
-    relation = TEN_GODS.get((user_elm, today_elm), "Unknown")
+    relation = RELATIONS.get((user_elm, today_elm), "Unknown")
+
+    # 간단한 점수 및 조언 로직
+    score = 70  # 기본점수
+    advice = ""
+
+    if "Wealth" in relation:
+        score = 90
+        advice = "Excellent day for financial decisions!"
+    elif "Support" in relation:
+        score = 85
+        advice = "Great day for learning and receiving help."
+    elif "Output" in relation:
+        score = 80
+        advice = "Good day for creativity and self-expression."
+    elif "Friend" in relation:
+        score = 75
+        advice = "Good for networking, but watch out for competition."
+    elif "Career" in relation:
+        score = 60
+        advice = "You might feel pressure today. Stay calm."
 
     return {
-        "date": target_date_str,
-        "today_pillar": day_ganzhi,  # 예: 庚申
-        "energy": today_elm,  # 예: Metal
-        "relation": relation,  # 예: Career (관성) - 직장운/스트레스
-        "score": 80 if "Wealth" in relation or "Support" in relation else 50
+        "date": now.strftime("%Y-%m-%d"),
+        "today_pillar": f"{today_gan}{today_zhi}",
+        "user_element": user_elm,
+        "today_element": today_elm,
+        "relation": relation,
+        "score": score,
+        "advice": advice
     }
