@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 
-# [수정됨] app 폴더 내부 모듈 가져오기
+# [수정됨] app 패키지 내부 모듈 가져오기 (구조 변경 반영)
 from app import models, database
 from app.services.lunar_service import get_lunar_date
 from app.services.saju_engine import calculate_saju, get_today_fortune

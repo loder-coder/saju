@@ -26,9 +26,10 @@ def translate_pillar(gan_zhi: str) -> str:
     return f"{gan} {zhi}"
 
 
-def build_saju_prompt(saju_data: dict) -> str:
+def build_saju_prompt(saju_data: dict, theme: str = "general") -> str:
     """
-    JSON 결과를 받아서 LLM에게 던질 영어 프롬프트를 생성함
+    주제(theme)에 따라 다른 프롬프트를 생성함
+    theme: 'general', 'love', 'career', 'wealth'
     """
 
     # 1. 기둥 번역
@@ -45,12 +46,40 @@ def build_saju_prompt(saju_data: dict) -> str:
     dominant = sorted_elements[0]  # 가장 많은 것
     lacking = [k for k, v in elements.items() if v == 0]  # 없는 것
 
-    # 3. 프롬프트 구성 (System Persona + Data Context)
-    prompt = f"""
-    You are an expert 'Life Consultant' who uses Eastern philosophy (Five Elements) to analyze personality and potential. 
-    Do NOT act like a fortune teller or mystic. Act like a modern MBTI analyst or psychology counselor.
+    # 3. 주제별 지침 설정 (페르소나 변경)
+    theme_instructions = {
+        "general": """
+            1. Define their 'Core Archetype' based on the Day Pillar.
+            2. Explain their general personality strengths based on Dominant Energy.
+            3. Give 1 practical piece of life advice based on Missing Energy.
+        """,
+        "love": """
+            1. Analyze their romantic style based on the Day Pillar (Core Self) and Element Balance.
+            2. Explain what kind of partner suits them best.
+            3. If they lack Fire/Water, give advice on expressing emotion. If they lack Earth/Metal, give advice on stability.
+            4. Focus specifically on Love, Attraction, and Relationships.
+        """,
+        "career": """
+            1. Analyze their work style based on the Month Pillar (Career Environment) and Dominant Energy.
+            2. Suggest 2-3 suitable career fields or roles (e.g., Leadership, Creative, Analytical).
+            3. Give advice on how to handle workplace stress based on their Missing Energy.
+            4. Focus specifically on Career, Business, and Professional Growth.
+        """,
+        "wealth": """
+            1. Analyze their potential for wealth accumulation based on Element Balance.
+            2. Is their energy better suited for steady saving (Earth) or bold investments (Fire/Metal)?
+            3. Give practical financial advice based on their chart.
+            4. Focus specifically on Money, Investment, and Financial Stability.
+        """
+    }
 
-    Analyze the following user's 'Energy Blueprint':
+    # 테마가 없거나 이상하면 general로 처리
+    selected_instruction = theme_instructions.get(theme, theme_instructions["general"])
+
+    # 4. 프롬프트 조립
+    prompt = f"""
+    You are an expert 'Life Consultant' specializing in Eastern philosophy (Saju).
+    The user has asked for a specific analysis on: **{theme.upper()}**.
 
     [User Profile]
     - Year Pillar (Social/Roots): {year_p}
@@ -62,15 +91,16 @@ def build_saju_prompt(saju_data: dict) -> str:
     {', '.join([f'{k}: {v}' for k, v in elements.items()])}
 
     [Key Traits]
-    - Dominant Energy: {dominant[0]} (Count: {dominant[1]}) -> Explain what having strong '{dominant[0]}' energy means for their personality.
-    - Missing Energy: {', '.join(lacking) if lacking else 'None'} -> Explain the potential weakness or what they seek in life.
+    - Dominant Energy: {dominant[0]} ({dominant[1]})
+    - Missing Energy: {', '.join(lacking) if lacking else 'None'}
 
-    [Instructions]
-    1. Define their 'Core Archetype' based on the Day Pillar ({day_p}).
-    2. Explain their strength based on the Dominant Energy.
-    3. Give 1 practical piece of advice for career or relationships based on the Missing Energy.
-    4. Tone: Empathetic, Insightful, Professional, Modern.
-    5. Language: English (US Market).
+    [Instructions for {theme.upper()} Analysis]
+    {selected_instruction}
+
+    [Tone]
+    Empathetic, Insightful, Professional, Modern.
+    Language: English (US Market).
+    Output Format: Clean text with clear headings. No markdown bolding (**) excessively.
     """
 
     return prompt.strip()
