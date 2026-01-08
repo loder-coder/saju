@@ -3,11 +3,15 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+# 서비스들은 app 폴더 안에 있는 게 맞다면 그대로 둠
 from app.services.lunar_service import get_lunar_date
 from app.services.saju_engine import calculate_saju
 from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
-from app import models, database
+
+# 같은 위치에 있는 모듈들 (수정됨)
+import models
+import database
 
 import os
 from dotenv import load_dotenv
@@ -15,7 +19,7 @@ from dotenv import load_dotenv
 # .env 로드
 load_dotenv()
 
-# DB 테이블 생성 (앱 시작 시 자동 실행)
+# DB 테이블 생성
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
@@ -41,7 +45,6 @@ def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db))
         year, month, day = map(int, payload.birth_date.split("-"))
         hour, minute = map(int, payload.birth_time.split(":"))
 
-        # 1. Lunar Service 호출
         lunar_data = get_lunar_date(
             year, month, day, hour, minute,
             timezone_str=payload.timezone,
@@ -51,7 +54,6 @@ def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db))
         adjusted_hour = lunar_data["solar"]["hour"]
         adjusted_minute = lunar_data["solar"]["minute"]
 
-        # 2. 사주 계산
         saju_data = calculate_saju(
             lunar_data["lunar"]["year"],
             lunar_data["lunar"]["month"],
@@ -75,15 +77,13 @@ def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db))
             "analysis": None
         }
 
-        # 3. LLM 분석 (옵션)
         if payload.include_analysis:
             full_saju_context = {"saju": saju_data}
             prompt = build_saju_prompt(full_saju_context)
             analysis_result = get_ai_analysis(prompt)
             response_data["analysis"] = analysis_result
 
-        # 4. DB 저장 (NEW!)
-        # 일주(Day Pillar) 영어 번역
+        # DB 저장
         day_pillar_en = translate_pillar(saju_data["pillars"]["day"])
 
         new_record = models.SajuRecord(
@@ -92,13 +92,12 @@ def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db))
             timezone=payload.timezone,
             longitude=payload.longitude,
             day_master=day_pillar_en,
-            result_json=response_data  # 전체 결과를 JSON으로 저장
+            result_json=response_data
         )
         db.add(new_record)
         db.commit()
         db.refresh(new_record)
 
-        # 저장된 ID를 응답에 포함시켜주면 나중에 조회할 때 씀
         response_data["record_id"] = new_record.id
 
         return response_data
