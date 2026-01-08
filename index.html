@@ -73,6 +73,18 @@
                             class="w-full bg-dark border border-gray-600 rounded-lg p-2.5 focus:border-accent focus:outline-none transition-colors">
                     </div>
 
+                    <!-- AI Analysis Toggle -->
+                    <div class="flex items-center justify-between bg-dark/50 p-3 rounded-lg border border-gray-600/50">
+                        <label class="flex items-center cursor-pointer gap-2 select-none">
+                            <div class="relative">
+                                <input type="checkbox" id="include_analysis" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-300">Include AI Analysis</span>
+                        </label>
+                        <span class="text-xs text-gray-500"><i class="fa-solid fa-robot"></i> Gemini/GPT</span>
+                    </div>
+
                     <!-- Submit -->
                     <button type="submit"
                         class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transform transition hover:scale-[1.02]">
@@ -82,18 +94,21 @@
             </div>
 
             <!-- Result Display -->
-            <div class="bg-card p-6 rounded-2xl shadow-xl border border-gray-700 relative overflow-hidden">
-                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <div class="bg-card p-6 rounded-2xl shadow-xl border border-gray-700 relative overflow-hidden flex flex-col h-[600px]">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 flex-shrink-0">
                     <i class="fa-solid fa-code text-green-400"></i> JSON Response
                 </h2>
 
                 <!-- Loading Spinner -->
                 <div id="loading" class="hidden absolute inset-0 bg-card/90 flex items-center justify-center z-10">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+                        <p class="text-sm text-gray-400 animate-pulse">Consulting the Stars...</p>
+                    </div>
                 </div>
 
                 <!-- Content -->
-                <div id="resultArea" class="h-[400px] overflow-auto bg-dark rounded-lg p-4 font-mono text-sm text-green-400 whitespace-pre">
+                <div id="resultArea" class="flex-1 overflow-auto bg-dark rounded-lg p-4 font-mono text-sm text-green-400 whitespace-pre">
                     // Result will appear here...
                 </div>
             </div>
@@ -125,12 +140,16 @@
             loading.classList.remove('hidden');
             resultArea.textContent = 'Calculating...';
 
+            // 체크박스 상태 확인
+            const isAnalysisIncluded = document.getElementById('include_analysis').checked;
+
             const payload = {
                 birth_date: document.getElementById('birth_date').value,
                 birth_time: document.getElementById('birth_time').value,
                 timezone: document.getElementById('timezone').value,
                 longitude: parseFloat(document.getElementById('longitude').value),
-                latitude: 0.0 // Placeholder
+                latitude: 0.0,
+                include_analysis: isAnalysisIncluded // 요청에 추가
             };
 
             try {
