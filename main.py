@@ -1,15 +1,22 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
 from app.services.lunar_service import get_lunar_date
 from app.services.saju_engine import calculate_saju
-from app.services.prompt_builder import build_saju_prompt
+from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
+from app import models, database
+
 import os
 from dotenv import load_dotenv
 
-# .env 로드 (로컬 개발용)
+# .env 로드
 load_dotenv()
+
+# DB 테이블 생성 (앱 시작 시 자동 실행)
+models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
@@ -29,7 +36,7 @@ def health():
 
 
 @app.post("/saju")
-def saju_calculate(payload: SajuRequest):
+def saju_calculate(payload: SajuRequest, db: Session = Depends(database.get_db)):
     try:
         year, month, day = map(int, payload.birth_date.split("-"))
         hour, minute = map(int, payload.birth_time.split(":"))
@@ -70,13 +77,29 @@ def saju_calculate(payload: SajuRequest):
 
         # 3. LLM 분석 (옵션)
         if payload.include_analysis:
-            # 프롬프트 생성
             full_saju_context = {"saju": saju_data}
             prompt = build_saju_prompt(full_saju_context)
-
-            # LLM 호출
             analysis_result = get_ai_analysis(prompt)
             response_data["analysis"] = analysis_result
+
+        # 4. DB 저장 (NEW!)
+        # 일주(Day Pillar) 영어 번역
+        day_pillar_en = translate_pillar(saju_data["pillars"]["day"])
+
+        new_record = models.SajuRecord(
+            birth_date=payload.birth_date,
+            birth_time=payload.birth_time,
+            timezone=payload.timezone,
+            longitude=payload.longitude,
+            day_master=day_pillar_en,
+            result_json=response_data  # 전체 결과를 JSON으로 저장
+        )
+        db.add(new_record)
+        db.commit()
+        db.refresh(new_record)
+
+        # 저장된 ID를 응답에 포함시켜주면 나중에 조회할 때 씀
+        response_data["record_id"] = new_record.id
 
         return response_data
 
