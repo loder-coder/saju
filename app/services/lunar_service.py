@@ -5,6 +5,12 @@ def get_lunar_date(year: int, month: int, day: int) -> dict:
     solar = Solar.fromYmd(year, month, day)
     lunar = solar.getLunar()
 
+    # 윤달 여부 안전 처리
+    try:
+        is_leap = lunar.isLeapMonth()
+    except:
+        is_leap = False
+
     return {
         "solar": {
             "year": year,
@@ -15,6 +21,6 @@ def get_lunar_date(year: int, month: int, day: int) -> dict:
             "year": lunar.getYear(),
             "month": lunar.getMonth(),
             "day": lunar.getDay(),
-            "isLeapMonth": lunar.isLeap()
+            "isLeapMonth": is_leap
         }
     }
