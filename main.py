@@ -1,8 +1,14 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from app.services.lunar_service import get_lunar_date
 from app.services.saju_engine import calculate_saju
 
 app = FastAPI()
+
+
+class SajuRequest(BaseModel):
+    birth_date: str  # "1993-07-21"
+    birth_time: str  # "14:30"
 
 
 @app.get("/")
@@ -10,16 +16,16 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/saju")
-def saju_calculate(
-    birth_date: str = Query(..., example="1993-07-21"),
-    birth_time: str = Query(..., example="14:30")
-):
+@app.post("/saju")
+def saju_calculate(payload: SajuRequest):
     try:
+        birth_date = payload.birth_date
+        birth_time = payload.birth_time
+
         year, month, day = map(int, birth_date.split("-"))
         hour, minute = map(int, birth_time.split(":"))
 
-        # 1. 양력 → 음력
+        # 1. 양력 → 음력 변환
         lunar = get_lunar_date(year, month, day)
 
         lunar_year = lunar["lunar"]["year"]
