@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI
-import google.generativeai as genai
+from google import genai
 
 
 # 환경변수 가이드
@@ -53,12 +53,18 @@ def _call_gemini(prompt: str):
     if not api_key:
         return "Gemini API Key missing."
 
-    genai.configure(api_key=api_key)
+    # 신규 SDK (google-genai) 사용법: 클라이언트 인스턴스 생성
+    client = genai.Client(api_key=api_key)
 
-    # 여기서 환경변수 없으면 기본값(gemini-1.5-flash) 사용
+    # 환경변수 없으면 기본값(gemini-1.5-flash) 사용
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
-    model = genai.GenerativeModel(model_name)
-
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        # 신규 SDK 메서드 사용
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        return f"Gemini API Error: {str(e)}"
