@@ -10,7 +10,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/saju")
+@app.get("/saju")
 def saju_calculate(payload: dict):
     """
     payload example:
