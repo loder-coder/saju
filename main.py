@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from app.services.lunar_service import get_lunar_date
 from app.services.saju_engine import calculate_saju
 
@@ -11,21 +11,11 @@ def health():
 
 
 @app.get("/saju")
-def saju_calculate(payload: dict):
-    """
-    payload example:
-    {
-        "birth_date": "1993-07-21",
-        "birth_time": "14:30"
-    }
-    """
+def saju_calculate(
+    birth_date: str = Query(..., example="1993-07-21"),
+    birth_time: str = Query(..., example="14:30")
+):
     try:
-        birth_date = payload.get("birth_date")
-        birth_time = payload.get("birth_time")
-
-        if not birth_date or not birth_time:
-            raise ValueError("birth_date and birth_time are required")
-
         year, month, day = map(int, birth_date.split("-"))
         hour, minute = map(int, birth_time.split(":"))
 
@@ -46,7 +36,10 @@ def saju_calculate(payload: dict):
         )
 
         return {
-            "input": payload,
+            "input": {
+                "birth_date": birth_date,
+                "birth_time": birth_time
+            },
             "lunar": lunar,
             "saju": saju
         }
