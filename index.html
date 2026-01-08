@@ -3,125 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elemental Blueprint Debugger</title>
+    <title>Elemental Blueprint</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                    },
                     colors: {
                         dark: '#0f172a',
                         card: '#1e293b',
-                        accent: '#8b5cf6', // Violet
+                        accent: '#8b5cf6',
+                        wood: '#10b981', // Green
+                        fire: '#ef4444', // Red
+                        earth: '#d97706', // Amber
+                        metal: '#94a3b8', // Slate
+                        water: '#3b82f6', // Blue
                     }
                 }
             }
         }
     </script>
+    <style>
+        .element-bar { transition: width 1s ease-in-out; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-dark text-gray-100 min-h-screen font-sans">
-    <div class="max-w-4xl mx-auto p-6">
+<body class="bg-dark text-gray-100 min-h-screen font-sans antialiased selection:bg-accent selection:text-white">
+    <div class="max-w-2xl mx-auto p-4 md:p-8">
         <!-- Header -->
-        <header class="mb-10 text-center">
-            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2">
+        <header class="mb-8 text-center cursor-pointer" onclick="window.location.href='/'">
+            <h1 class="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2">
                 Elemental Blueprint
             </h1>
-            <p class="text-gray-400">Saju Engine Debugger for Global Market</p>
+            <p class="text-gray-400 text-sm md:text-base">Discover Your Energy Signature</p>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Input Form -->
-            <div class="bg-card p-6 rounded-2xl shadow-xl border border-gray-700">
-                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-accent"></i> Input Parameters
-                </h2>
+        <!-- Loading Overlay -->
+        <div id="loading" class="hidden fixed inset-0 bg-dark/90 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent mb-4"></div>
+            <p class="text-accent font-serif animate-pulse text-lg">Consulting the Stars...</p>
+        </div>
 
-                <form id="sajuForm" class="space-y-4">
-                    <!-- Date & Time -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm text-gray-400 mb-1">Birth Date</label>
-                            <input type="date" id="birth_date" required
-                                class="w-full bg-dark border border-gray-600 rounded-lg p-2.5 focus:border-accent focus:outline-none transition-colors">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-400 mb-1">Birth Time</label>
-                            <input type="time" id="birth_time" required
-                                class="w-full bg-dark border border-gray-600 rounded-lg p-2.5 focus:border-accent focus:outline-none transition-colors">
-                        </div>
-                    </div>
+        <!-- Input Form Section -->
+        <div id="inputSection" class="bg-card p-6 md:p-8 rounded-3xl shadow-2xl border border-gray-700/50">
+            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-white">
+                <i class="fa-solid fa-compass text-accent"></i> Enter Details
+            </h2>
 
-                    <!-- Timezone -->
+            <form id="sajuForm" class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm text-gray-400 mb-1">Timezone</label>
-                        <select id="timezone" class="w-full bg-dark border border-gray-600 rounded-lg p-2.5 focus:border-accent focus:outline-none transition-colors">
-                            <option value="Asia/Seoul">Seoul (Asia/Seoul)</option>
-                            <option value="America/New_York" selected>New York (America/New_York)</option>
-                            <option value="America/Los_Angeles">Los Angeles (America/Los_Angeles)</option>
-                            <option value="Europe/London">London (Europe/London)</option>
-                        </select>
+                        <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Birth Date</label>
+                        <input type="date" id="birth_date" required
+                            class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
                     </div>
-
-                    <!-- Longitude -->
                     <div>
-                        <label class="block text-sm text-gray-400 mb-1">
-                            Longitude (Degrees)
-                            <span class="text-xs text-gray-500 block">East(+), West(-) | e.g. NY: -74.0</span>
-                        </label>
-                        <input type="number" step="0.0001" id="longitude" value="-74.0060"
-                            class="w-full bg-dark border border-gray-600 rounded-lg p-2.5 focus:border-accent focus:outline-none transition-colors">
-                    </div>
-
-                    <!-- AI Analysis Toggle -->
-                    <div class="flex items-center justify-between bg-dark/50 p-3 rounded-lg border border-gray-600/50">
-                        <label class="flex items-center cursor-pointer gap-2 select-none">
-                            <div class="relative">
-                                <input type="checkbox" id="include_analysis" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-300">Include AI Analysis</span>
-                        </label>
-                        <span class="text-xs text-gray-500"><i class="fa-solid fa-robot"></i> Gemini/GPT</span>
-                    </div>
-
-                    <!-- Submit -->
-                    <button type="submit"
-                        class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transform transition hover:scale-[1.02]">
-                        Analyze Blueprint
-                    </button>
-                </form>
-            </div>
-
-            <!-- Result Display -->
-            <div class="bg-card p-6 rounded-2xl shadow-xl border border-gray-700 relative overflow-hidden flex flex-col h-[600px]">
-                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 flex-shrink-0">
-                    <i class="fa-solid fa-code text-green-400"></i> JSON Response
-                </h2>
-
-                <!-- Loading Spinner -->
-                <div id="loading" class="hidden absolute inset-0 bg-card/90 flex items-center justify-center z-10">
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-                        <p class="text-sm text-gray-400 animate-pulse">Consulting the Stars...</p>
+                        <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Birth Time</label>
+                        <input type="time" id="birth_time" required
+                            class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
                     </div>
                 </div>
 
-                <!-- Content -->
-                <div id="resultArea" class="flex-1 overflow-auto bg-dark rounded-lg p-4 font-mono text-sm text-green-400 whitespace-pre">
-                    // Result will appear here...
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Location (Timezone)</label>
+                    <select id="timezone" class="w-full bg-dark/50 border border-gray-600 rounded-xl p-3 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none transition-all">
+                        <option value="Asia/Seoul">Seoul (Korea)</option>
+                        <option value="America/New_York" selected>New York (Eastern Time)</option>
+                        <option value="America/Los_Angeles">Los Angeles (Pacific Time)</option>
+                        <option value="Europe/London">London (GMT)</option>
+                    </select>
+                </div>
+
+                <div class="hidden">
+                    <input type="number" id="longitude" value="-74.0060">
+                </div>
+
+                <div class="flex items-center justify-between bg-dark/30 p-4 rounded-xl border border-gray-600/30">
+                    <label class="flex items-center cursor-pointer gap-3 select-none w-full">
+                        <div class="relative">
+                            <input type="checkbox" id="include_analysis" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-300">Include AI Life Analysis</span>
+                    </label>
+                    <i class="fa-solid fa-wand-magic-sparkles text-accent"></i>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-violet-900/20 transform transition hover:scale-[1.01] active:scale-95 text-lg">
+                    Reveal My Blueprint
+                </button>
+            </form>
+        </div>
+
+        <!-- Result Section (Hidden by default) -->
+        <div id="resultSection" class="hidden space-y-6 fade-in">
+            <!-- Share Bar -->
+            <div class="flex justify-end mb-2">
+                <button onclick="shareResult()" class="text-sm text-accent hover:text-white transition flex items-center gap-2 bg-card px-4 py-2 rounded-full border border-gray-700">
+                    <i class="fa-solid fa-share-nodes"></i> Share Link
+                </button>
+            </div>
+
+            <!-- Main Card -->
+            <div class="bg-card rounded-3xl overflow-hidden shadow-2xl border border-gray-700/50">
+                <!-- Day Master Title -->
+                <div class="bg-gradient-to-r from-violet-900/50 to-indigo-900/50 p-8 text-center border-b border-gray-700/50">
+                    <p class="text-gray-400 text-sm uppercase tracking-widest mb-2">Your Core Archetype</p>
+                    <h2 id="dayMaster" class="text-3xl md:text-4xl font-serif font-bold text-white mb-2"></h2>
+                    <p id="birthDetails" class="text-gray-400 text-sm font-mono"></p>
+                </div>
+
+                <div class="p-6 md:p-8 space-y-8">
+                    <!-- 5 Elements Chart -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-simple text-gray-400"></i> Elemental Balance
+                        </h3>
+                        <div class="space-y-3" id="elementsChart">
+                            <!-- JS will inject bars here -->
+                        </div>
+                    </div>
+
+                    <!-- AI Analysis -->
+                    <div id="aiSection" class="bg-dark/50 rounded-2xl p-6 border border-gray-700/50">
+                        <h3 class="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-accent"></i> AI Insight
+                        </h3>
+                        <div id="aiContent" class="text-gray-300 text-sm leading-relaxed whitespace-pre-line font-light">
+                            <!-- AI Text -->
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <button onclick="window.location.href='/'" class="w-full py-4 text-gray-400 hover:text-white transition">
+                Analyze Another Person
+            </button>
         </div>
     </div>
 
     <script>
-        // Set default date/time to now
+        // --- 1. 유틸리티 및 초기화 ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const recordId = urlParams.get('id');
+
+        // 기본값 설정
         const now = new Date();
         document.getElementById('birth_date').valueAsDate = now;
         document.getElementById('birth_time').value = now.toTimeString().substring(0,5);
 
-        // Handle Timezone Change -> Auto update longitude (approx)
+        // --- 2. 페이지 로드 시 로직 ---
+        if (recordId) {
+            // 공유 링크로 들어온 경우 -> 결과 바로 조회
+            fetchRecord(recordId);
+        }
+
+        // --- 3. 이벤트 리스너 ---
         document.getElementById('timezone').addEventListener('change', function(e) {
             const tz = e.target.value;
             const longInput = document.getElementById('longitude');
@@ -131,17 +177,10 @@
             if(tz === 'Europe/London') longInput.value = -0.1276;
         });
 
-        // Submit Handler
         document.getElementById('sajuForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const loading = document.getElementById('loading');
-            const resultArea = document.getElementById('resultArea');
-
             loading.classList.remove('hidden');
-            resultArea.textContent = 'Calculating...';
-
-            // 체크박스 상태 확인
-            const isAnalysisIncluded = document.getElementById('include_analysis').checked;
 
             const payload = {
                 birth_date: document.getElementById('birth_date').value,
@@ -149,7 +188,7 @@
                 timezone: document.getElementById('timezone').value,
                 longitude: parseFloat(document.getElementById('longitude').value),
                 latitude: 0.0,
-                include_analysis: isAnalysisIncluded // 요청에 추가
+                include_analysis: document.getElementById('include_analysis').checked
             };
 
             try {
@@ -158,15 +197,112 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 const data = await response.json();
-                resultArea.textContent = JSON.stringify(data, null, 2);
+
+                // URL에 ID 추가해서 히스토리 변경 (새로고침해도 유지되게)
+                if(data.record_id) {
+                    const newUrl = `${window.location.pathname}?id=${data.record_id}`;
+                    window.history.pushState({path: newUrl}, '', newUrl);
+                }
+
+                renderResult(data);
+
             } catch (err) {
-                resultArea.textContent = 'Error: ' + err.message;
+                alert('Error: ' + err.message);
             } finally {
                 loading.classList.add('hidden');
             }
         });
+
+        // --- 4. 데이터 조회 및 렌더링 함수 ---
+        async function fetchRecord(id) {
+            const loading = document.getElementById('loading');
+            loading.classList.remove('hidden');
+            try {
+                const response = await fetch(`/saju/${id}`);
+                if (!response.ok) throw new Error("Record not found");
+                const data = await response.json();
+                renderResult(data);
+            } catch (err) {
+                alert("Could not load record. It might have been deleted.");
+                window.location.href = '/';
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function renderResult(data) {
+            // 섹션 전환
+            document.getElementById('inputSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+
+            // 1. 기본 정보 매핑
+            // Day Pillar 번역 (한글->영어 매핑이 필요하거나 백엔드에서 받아야 함)
+            // 백엔드에서 'day_master'를 따로 안 보내주면 JSON 파싱해서 대략적으로 표시
+            // 여기서는 일단 간지 한자 그대로 보여주거나 백엔드가 준 analysis 활용
+
+            // pillars 데이터 확인
+            const dayPillar = data.saju.day; // 예: 戊寅
+
+            // 간단 매핑 (프론트용) - 예시
+            const stemMap = {'甲':'Yang Wood', '乙':'Yin Wood', '丙':'Yang Fire', '丁':'Yin Fire', '戊':'Yang Earth', '己':'Yin Earth', '庚':'Yang Metal', '辛':'Yin Metal', '壬':'Yang Water', '癸':'Yin Water'};
+            const branchMap = {'子':'Rat', '丑':'Ox', '寅':'Tiger', '卯':'Rabbit', '辰':'Dragon', '巳':'Snake', '午':'Horse', '未':'Sheep', '申':'Monkey', '酉':'Rooster', '戌':'Dog', '亥':'Pig'};
+
+            const stem = dayPillar[0];
+            const branch = dayPillar[1];
+            const engTitle = `${stemMap[stem] || stem} ${branchMap[branch] || branch}`;
+
+            document.getElementById('dayMaster').textContent = engTitle;
+            document.getElementById('birthDetails').textContent = `${data.input.birth_date} ${data.input.birth_time} (${data.input.timezone})`;
+
+            // 2. 오행 그래프 그리기
+            const elContainer = document.getElementById('elementsChart');
+            elContainer.innerHTML = '';
+            const colors = { 'Wood': 'bg-wood', 'Fire': 'bg-fire', 'Earth': 'bg-earth', 'Metal': 'bg-metal', 'Water': 'bg-water' };
+            const icons = { 'Wood': 'fa-tree', 'Fire': 'fa-fire', 'Earth': 'fa-mountain', 'Metal': 'fa-gavel', 'Water': 'fa-water' };
+
+            // 최대값 찾기 (그래프 비율용)
+            const maxVal = Math.max(...Object.values(data.elements));
+
+            for (const [elm, count] of Object.entries(data.elements)) {
+                const percent = maxVal > 0 ? (count / 8) * 100 : 0; // 8글자 기준 %
+                const displayWidth = Math.max(percent, 5); // 최소 너비 보장
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-4';
+                row.innerHTML = `
+                    <div class="w-20 text-xs font-semibold text-gray-400 flex items-center gap-2">
+                        <i class="fa-solid ${icons[elm]} w-4"></i> ${elm}
+                    </div>
+                    <div class="flex-1 bg-dark rounded-full h-4 overflow-hidden relative">
+                        <div class="${colors[elm]} h-full rounded-full element-bar flex items-center justify-end px-2" style="width: ${displayWidth}%">
+                            <span class="text-[10px] font-bold text-white/90">${count}</span>
+                        </div>
+                    </div>
+                `;
+                elContainer.appendChild(row);
+            }
+
+            // 3. AI 분석 표시
+            const aiContent = document.getElementById('aiContent');
+            if (data.analysis) {
+                document.getElementById('aiSection').classList.remove('hidden');
+                // 마크다운 스타일 제거하고 텍스트만 깔끔하게
+                aiContent.innerText = data.analysis.replace(/\*\*/g, '').replace(/###/g, '');
+            } else {
+                document.getElementById('aiSection').classList.add('hidden');
+            }
+        }
+
+        async function shareResult() {
+            const url = window.location.href;
+            try {
+                await navigator.clipboard.writeText(url);
+                alert('Link copied to clipboard! Share it with friends.');
+            } catch (err) {
+                alert('Copy failed. URL: ' + url);
+            }
+        }
     </script>
 </body>
 </html>
