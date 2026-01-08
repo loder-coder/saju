@@ -51,7 +51,7 @@
             display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem;
             background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0));
         }
-        .custom-input { background: transparent; border: 1px solid #4b5563; color: white; text-align: center; }
+        .custom-input { background: transparent; border: 1px solid #4b5563; color: white; text-align: center; appearance: none; }
         .custom-input:focus { border-color: #45a29e; outline: none; }
         .tab-btn.active { color: #66fcf1; border-bottom: 2px solid #66fcf1; }
         #locationResults { max-height: 150px; overflow-y: auto; background: #1f2833; border: 1px solid #4b5563; }
@@ -98,10 +98,26 @@
                 <h2 class="text-center font-serif text-xl text-gray-200 mb-8">Enter Your Origin</h2>
                 <form id="sajuForm" class="space-y-6" onsubmit="return false;">
                     <div class="space-y-4">
-                        <!-- Date -->
+                        <!-- Custom Date Input (English) -->
                         <div class="relative">
                             <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">Date of Birth</label>
-                            <input type="date" id="birth_date" class="w-full custom-input p-3">
+                            <div class="flex gap-2">
+                                <select id="dob_month" class="w-1/3 custom-input p-3">
+                                    <option value="" disabled selected>Month</option>
+                                    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+                                    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+                                    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+                                    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                                </select>
+                                <select id="dob_day" class="w-1/3 custom-input p-3">
+                                    <option value="" disabled selected>Day</option>
+                                    <!-- JS will fill this -->
+                                </select>
+                                <select id="dob_year" class="w-1/3 custom-input p-3">
+                                    <option value="" disabled selected>Year</option>
+                                    <!-- JS will fill this -->
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Time -->
@@ -114,7 +130,7 @@
                             </div>
                         </div>
 
-                        <!-- Location with Search Button -->
+                        <!-- Location -->
                         <div class="relative">
                             <label class="absolute -top-2 left-2 bg-paper px-1 text-[10px] text-jade uppercase">City Search</label>
                             <div class="flex gap-2">
@@ -123,9 +139,7 @@
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                 </button>
                             </div>
-                            <!-- Search Results Dropdown -->
                             <ul id="locationResults" class="hidden absolute w-full mt-1 z-50 text-sm text-gray-300 shadow-xl border border-gray-600 bg-paper max-h-40 overflow-y-auto"></ul>
-
                             <input type="hidden" id="timezone" value="America/New_York">
                             <input type="hidden" id="longitude" value="-74.0">
                         </div>
@@ -169,7 +183,7 @@
                 <div id="elementsChart" class="space-y-3"></div>
             </div>
 
-            <!-- Deep Analysis -->
+            <!-- Themes -->
             <div class="mb-12">
                 <h3 class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 px-2">Deep Themes</h3>
                 <div class="grid grid-cols-1 gap-4">
@@ -177,7 +191,6 @@
                         <img src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop" alt="Love">
                         <div class="theme-content"><h4 class="text-white font-serif text-xl">Love</h4><p class="text-pink-300 text-xs">Romance & Attraction</p></div>
                     </div>
-                    <!-- Wealth Image Changed -->
                     <div onclick="analyzeTheme('wealth')" class="theme-card">
                         <img src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=800&auto=format&fit=crop" alt="Wealth">
                         <div class="theme-content"><h4 class="text-white font-serif text-xl">Wealth</h4><p class="text-yellow-300 text-xs">Money & Success</p></div>
@@ -188,21 +201,14 @@
                     </div>
                 </div>
 
-                <!-- AI Result Area (Improved Layout) -->
+                <!-- Analysis Result -->
                 <div id="themeResultArea" class="hidden mt-6 bg-black/60 border border-jade/30 p-6 rounded-xl fade-in relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-quote-right text-4xl text-jade"></i></div>
                     <h4 id="themeTitle" class="text-jade text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2">Analysis</h4>
-
-                    <!-- 3-Line Summary Card -->
                     <div id="aiSummaryBox" class="mb-6 bg-paper/80 p-5 rounded-lg border border-jade/40 hidden shadow-lg relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-jade"></div>
-                        <h5 class="text-jade text-[10px] uppercase font-bold mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-star animate-pulse"></i> Oracle's Summary
-                        </h5>
+                        <h5 class="text-jade text-[10px] uppercase font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-star animate-pulse"></i> Oracle's Summary</h5>
                         <ul id="aiSummary" class="text-gray-200 text-sm font-serif leading-7 space-y-2 list-none"></ul>
                     </div>
-
-                    <!-- Detailed Content -->
                     <div id="aiContent" class="text-gray-400 text-sm font-light leading-7 whitespace-pre-line font-serif space-y-4"></div>
                 </div>
             </div>
@@ -212,10 +218,9 @@
     </div>
 
     <script>
-        let currentInputData = null, currentRecordId = null;
+        let currentInputData = null, currentRecordId = null, searchTimeout = null;
         const recordId = new URLSearchParams(window.location.search).get('id');
 
-        // Static Image Map
         const relationImages = {
             "WEALTH": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=800",
             "FRIEND": "https://images.unsplash.com/photo-1543807535-eceef0bc6599?q=80&w=800",
@@ -225,15 +230,25 @@
             "DEFAULT": "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800"
         };
 
-        // Init
-        try {
+        // Init Dates
+        (function initDateSelects() {
             const now = new Date();
-            document.getElementById('birth_date').valueAsDate = now;
+            const yearSelect = document.getElementById('dob_year');
+            const daySelect = document.getElementById('dob_day');
+
+            for (let i = now.getFullYear(); i >= 1900; i--) yearSelect.add(new Option(i, i));
+            for (let i = 1; i <= 31; i++) daySelect.add(new Option(i, i < 10 ? '0'+i : i));
+
+            // Set defaults
+            document.getElementById('dob_month').value = (now.getMonth()+1).toString().padStart(2,'0');
+            daySelect.value = now.getDate().toString().padStart(2,'0');
+            yearSelect.value = now.getFullYear();
+
             let h = now.getHours();
             document.getElementById('time_hour').value = h % 12 || 12;
             document.getElementById('time_min').value = (now.getMinutes()<10?'0':'')+now.getMinutes();
             document.getElementById('ampm_btn').textContent = h >= 12 ? 'PM' : 'AM';
-        } catch(e){}
+        })();
 
         if (recordId) { document.getElementById('introSection').classList.add('hidden'); fetchRecord(recordId); }
 
@@ -252,52 +267,46 @@
             btn.textContent = btn.textContent === 'AM' ? 'PM' : 'AM';
         }
 
-        // Location Search Logic
-        function handleEnter(e) { if(e.key === 'Enter') triggerSearch(); }
-
-        async function triggerSearch() {
-            const query = document.getElementById('location_search').value;
+        async function searchLocation(query) {
             const list = document.getElementById('locationResults');
-            if (query.length < 2) return;
-
-            try {
-                // Nominatim Search
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`);
-                const data = await res.json();
-
-                list.innerHTML = '';
-                if (data.length > 0) {
-                    list.classList.remove('hidden');
-                    data.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = "p-3 border-b border-gray-700 cursor-pointer text-left hover:bg-jade hover:text-black transition-colors";
-                        li.textContent = item.display_name.split(',').slice(0,3).join(',');
-                        li.onclick = () => {
-                            document.getElementById('location_search').value = item.display_name.split(',')[0];
-                            document.getElementById('longitude').value = parseFloat(item.lon);
-                            list.classList.add('hidden');
-                        };
-                        list.appendChild(li);
-                    });
-                } else {
-                    const li = document.createElement('li');
-                    li.className = "p-3 text-gray-500 italic";
-                    li.textContent = "No cities found";
-                    list.appendChild(li);
-                    list.classList.remove('hidden');
-                }
-            } catch(e) {}
+            if(query.length < 2) { list.classList.add('hidden'); return; }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`);
+                    const data = await res.json();
+                    list.innerHTML = '';
+                    if(data.length > 0) {
+                        list.classList.remove('hidden');
+                        data.forEach(item => {
+                            const li = document.createElement('li');
+                            li.className = "p-3 border-b border-gray-700 cursor-pointer text-left hover:bg-jade hover:text-black transition-colors";
+                            li.textContent = item.display_name.split(',').slice(0,3).join(',');
+                            li.onclick = () => {
+                                document.getElementById('location_search').value = item.display_name.split(',')[0];
+                                document.getElementById('longitude').value = parseFloat(item.lon);
+                                list.classList.add('hidden');
+                            };
+                            list.appendChild(li);
+                        });
+                    }
+                } catch(e){}
+            }, 500);
         }
 
         async function startAnalysis() {
-            const bDate = document.getElementById('birth_date').value;
+            const y = document.getElementById('dob_year').value;
+            const m = document.getElementById('dob_month').value;
+            const d = document.getElementById('dob_day').value;
             let hour = parseInt(document.getElementById('time_hour').value);
             const min = document.getElementById('time_min').value;
             const ampm = document.getElementById('ampm_btn').textContent;
 
-            if(!bDate || !hour || !min) return alert("Fill all fields");
+            if(!y || !m || !d || !hour || !min) return alert("Fill all fields");
             if(ampm === 'PM' && hour < 12) hour += 12;
             if(ampm === 'AM' && hour === 12) hour = 0;
+
+            const bDate = `${y}-${m}-${d}`;
             const bTime = `${hour.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}`;
 
             currentInputData = {
@@ -391,7 +400,6 @@
                     const summary = parts[0].replace('### SUMMARY', '').trim();
                     const analysis = parts[1] ? parts[1].trim() : '';
 
-                    // Improved Summary Rendering
                     const summaryList = document.getElementById('aiSummary');
                     summaryList.innerHTML = '';
                     summary.split('\n').forEach(line => {
@@ -403,7 +411,6 @@
                     });
                     summaryBox.classList.remove('hidden');
 
-                    // Improved Content Rendering (Bold logic)
                     content.innerHTML = analysis.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
                 }
             } catch(e) { content.textContent = "Connection interrupted."; }
