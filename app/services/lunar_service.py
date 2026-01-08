@@ -1,69 +1,67 @@
-import os
-from openai import OpenAI
-from google import genai
+from lunar_python import Solar
+import datetime
+import pytz
 
 
-# 환경변수 가이드
-# LLM_PROVIDER=gemini (또는 openai)
-# GEMINI_API_KEY=AIza...
-# GEMINI_MODEL=gemini-1.5-flash (원하면 gemini-1.5-pro 등으로 변경 가능)
-
-def get_ai_analysis(prompt: str) -> str:
-    provider = os.getenv("LLM_PROVIDER", "gemini").lower()
-
+def get_apparent_solar_time(year: int, month: int, day: int, hour: int, minute: int, timezone_str: str,
+                            longitude: float):
+    """
+    입력받은 지역 표준시(Local Time)를 진태양시(Apparent Solar Time)로 변환
+    """
     try:
-        if provider == "openai":
-            return _call_openai(prompt)
-        else:
-            return _call_gemini(prompt)
+        # 1. 입력받은 시간을 해당 Timezone의 datetime 객체로 생성
+        tz = pytz.timezone(timezone_str)
+        local_dt = tz.localize(datetime.datetime(year, month, day, hour, minute))
+
+        # 2. UTC로 변환
+        utc_dt = local_dt.astimezone(pytz.utc)
+
+        # 3. 진태양시 보정 (Longitude Correction)
+        # 태양은 1도 움직이는 데 4분 걸림.
+        # UTC 기준 시간 + (경도 * 4분) = LMT (Local Mean Time)
+        solar_correction_minutes = longitude * 4
+        solar_dt = utc_dt + datetime.timedelta(minutes=solar_correction_minutes)
+
+        return solar_dt.year, solar_dt.month, solar_dt.day, solar_dt.hour, solar_dt.minute
+
     except Exception as e:
-        return f"Analysis failed: {str(e)}"
+        print(f"Time correction failed: {e}")
+        # 실패 시 원본 그대로 리턴 (Fallback)
+        return year, month, day, hour, minute
 
 
-def _call_openai(prompt: str):
-    """
-    비용: GPT-4o-mini 기준 1M 토큰당 $0.15 (약 200원)
-    모델명도 환경변수로 제어 가능
-    """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return "OpenAI API Key missing."
-
-    client = OpenAI(api_key=api_key)
-    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # 기본값 gpt-4o-mini
-
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=[
-            {"role": "system", "content": "You are a helpful life consultant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=1000
+def get_lunar_date(year: int, month: int, day: int, hour: int, minute: int, timezone_str: str = "Asia/Seoul",
+                   longitude: float = 127.0) -> dict:
+    # 1. 진태양시로 시간 보정
+    s_year, s_month, s_day, s_hour, s_minute = get_apparent_solar_time(
+        year, month, day, hour, minute, timezone_str, longitude
     )
-    return response.choices[0].message.content
 
+    # 2. 보정된 시간으로 Solar 객체 생성
+    solar = Solar.fromYmdHms(s_year, s_month, s_day, s_hour, s_minute, 0)
+    lunar = solar.getLunar()
 
-def _call_gemini(prompt: str):
-    """
-    비용: 무료 (Pay-as-you-go 설정 시 초과분 과금)
-    모델: 환경변수 GEMINI_MODEL로 제어 (기본값 gemini-1.5-flash)
-    """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return "Gemini API Key missing."
-
-    # 신규 SDK (google-genai) 사용법
-    client = genai.Client(api_key=api_key)
-
-    # 환경변수 없으면 기본값(gemini-1.5-flash) 사용
-    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-
+    # 윤달 여부 안전 처리
     try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt
-        )
-        return response.text
-    except Exception as e:
-        return f"Gemini API Error: {str(e)}"
+        is_leap = lunar.isLeapMonth()
+    except:
+        is_leap = False
+
+    return {
+        "solar": {
+            "year": s_year,
+            "month": s_month,
+            "day": s_day,
+            "hour": s_hour,
+            "minute": s_minute,
+            "original": {
+                "year": year, "month": month, "day": day, "hour": hour, "minute": minute
+            }
+        },
+        "lunar": {
+            "year": lunar.getYear(),
+            "month": lunar.getMonth(),
+            "day": lunar.getDay(),
+            "isLeapMonth": is_leap
+        }
+    }
