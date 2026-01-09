@@ -1,11 +1,11 @@
 import json
 from fastapi import FastAPI, Request, Depends, HTTPException
-from fastapi.responses import FileResponse  # 👈 이거 추가됨
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-import database, models
+from app import database, models  # 👈 여기를 수정함 (app 폴더 내 모듈 참조)
 from pydantic import BaseModel
 from typing import Optional
 import redis
@@ -129,14 +129,13 @@ def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends
 
 @app.get("/history/{user_id}")
 def get_history(user_id: str, db: Session = Depends(database.get_db)):
-    # 히스토리 불러올 때 id랑 날짜 정보도 같이 보내주는 게 프론트에서 다루기 편함
     records = db.query(models.SajuRecord).filter(models.SajuRecord.user_id == user_id).order_by(
         models.SajuRecord.created_at.desc()).limit(10).all()
 
     output = []
     for rec in records:
         data = rec.result_json
-        data["record_id"] = rec.id  # id 강제 주입
+        data["record_id"] = rec.id
         data["created_at"] = rec.created_at.isoformat()
         output.append(data)
     return output
@@ -147,7 +146,6 @@ def get_period_fortune(period: str, record_id: int, db: Session = Depends(databa
     rec = db.query(models.SajuRecord).filter(models.SajuRecord.id == record_id).first()
     if not rec: raise HTTPException(status_code=404, detail="Not found")
     try:
-        # result_json에서 일간(Day Master)의 천간 글자 따오기
         user_gan = rec.result_json["saju"]["day"][0]
         fortune = get_fortune_by_period(user_gan, period)
         return fortune
