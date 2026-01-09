@@ -21,6 +21,11 @@ from app.services.saju_engine import calculate_saju, get_fortune_by_period
 from app.services.prompt_builder import build_saju_prompt, translate_pillar
 from app.services.llm_service import get_ai_analysis
 
+class UserLogin(BaseModel):
+    uid: str
+    email: str
+    provider: str
+
 load_dotenv()
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -61,6 +66,25 @@ def add_column_if_not_exists():
         except Exception as e:
             print(f"⚠️ DB Update Note: {e}")
 
+
+@app.post("/login")
+def login_user(payload: UserLogin, db: Session = Depends(database.get_db)):
+    # 이미 등록된 유저인지 확인
+    user = db.query(models.User).filter(models.User.uid == payload.uid).first()
+
+    if not user:
+        # 첫 로그인이면 DB에 유저 생성
+        user = models.User(
+            uid=payload.uid,
+            email=payload.email,
+            provider=payload.provider
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {"status": "created", "user": payload.uid}
+
+    return {"status": "ok", "user": user.uid}
 
 class SajuRequest(BaseModel):
     birth_date: str
