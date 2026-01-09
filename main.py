@@ -23,11 +23,13 @@ try:
     from app.services.saju_engine import calculate_saju, get_fortune_by_period
     from app.services.prompt_builder import build_saju_prompt, translate_pillar
     from app.services.llm_service import get_ai_analysis
+    from app.services.geo_service import geo_service  # [NEW] GeoService 추가
 except ImportError:
     from services.lunar_service import get_lunar_date
     from services.saju_engine import calculate_saju, get_fortune_by_period
     from services.prompt_builder import build_saju_prompt, translate_pillar
     from services.llm_service import get_ai_analysis
+    from services.geo_service import geo_service  # [NEW] GeoService 추가
 
 app = FastAPI()
 
@@ -57,7 +59,7 @@ REDIS_URL = os.getenv("REDIS_URL")
 r = redis.from_url(REDIS_URL) if REDIS_URL else None
 
 
-# --- 아래는 기존 API 로직과 동일 (생략 금지, 전체 복사해서 사용하셈) ---
+# --- API 로직 ---
 
 class SajuRequest(BaseModel):
     birth_date: str
@@ -68,6 +70,7 @@ class SajuRequest(BaseModel):
     include_analysis: bool = False
     theme: str = "general"
     user_id: Optional[str] = None
+    birth_place: Optional[str] = None  # [NEW] 도시 이름 입력 필드 추가
 
 
 class UserLogin(BaseModel):
@@ -92,7 +95,22 @@ def login_user(payload: UserLogin, db: Session = Depends(database.get_db)):
 @app.post("/saju")
 @limiter.limit("15/minute")
 def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends(database.get_db)):
-    cache_key = f"cache:{payload.birth_date}:{payload.birth_time}:{payload.theme}:{payload.user_id}"
+    # [NEW] 1. 지리 정보 보정 로직
+    # birth_place(예: "Nanterre")가 들어오면 좌표/타임존을 조회해서 payload를 갱신함
+    if payload.birth_place:
+        geo_info = geo_service.get_location_info(payload.birth_place)
+        if geo_info:
+            print(f"📍 [Geo] Fixed: {payload.birth_place} -> {geo_info['address']} ({geo_info['timezone']})")
+            payload.latitude = geo_info['latitude']
+            payload.longitude = geo_info['longitude']
+            payload.timezone = geo_info['timezone']
+        else:
+            print(f"⚠️ [Geo] Failed to find '{payload.birth_place}'. Using provided defaults.")
+
+    # [NEW] 캐시 키에 위도/경도 포함 (위치가 다르면 결과도 달라져야 함)
+    # 소수점 약간의 차이는 무시하기 위해 round 처리할 수도 있지만, 여기선 그대로 사용
+    cache_key = f"cache:{payload.birth_date}:{payload.birth_time}:{payload.latitude}:{payload.longitude}:{payload.theme}:{payload.user_id}"
+
     if r:
         cached = r.get(cache_key)
         if cached: return json.loads(cached)
@@ -100,22 +118,42 @@ def saju_calculate(request: Request, payload: SajuRequest, db: Session = Depends
     try:
         y, m, d = map(int, payload.birth_date.split("-"))
         h, mn = map(int, payload.birth_time.split(":"))
+
+        # 2. 갱신된 좌표/타임존으로 만세력 계산
         lunar = get_lunar_date(y, m, d, h, mn, payload.timezone, payload.longitude)
-        saju_res = calculate_saju(lunar["lunar"]["year"], lunar["lunar"]["month"], lunar["lunar"]["day"],
-                                  lunar["solar"]["hour"], lunar["solar"]["minute"])
+
+        saju_res = calculate_saju(
+            lunar["solar"]["year"],
+            lunar["solar"]["month"],
+            lunar["solar"]["day"],
+            lunar["solar"]["hour"],
+            lunar["solar"]["minute"]
+        )
 
         analysis_result = None
         if payload.include_analysis:
+            # 프롬프트 빌더에 지리 정보 컨텍스트를 넘겨줄 수 있다면 여기서 추가 가능
+            # 현재는 사주 결과 기반 해석
             prompt = build_saju_prompt({"saju": saju_res}, theme=payload.theme)
+
+            # [Tip] 만약 LLM에게 "여기는 프랑스다"라고 알려주고 싶다면 prompt에 문자열을 추가하면 됨
+            if payload.birth_place:
+                prompt += f"\n(참고: 사용자의 출생지는 {payload.birth_place}, 시간대는 {payload.timezone}입니다.)"
+
             analysis_result = get_ai_analysis(prompt)
 
         res_data = {"input": payload.dict(), "lunar": lunar["lunar"], "saju": saju_res["pillars"],
                     "elements": saju_res["elements"], "analysis": analysis_result}
 
+        # DB 저장
         new_record = models.SajuRecord(
-            user_id=payload.user_id, birth_date=payload.birth_date, birth_time=payload.birth_time,
-            timezone=payload.timezone, longitude=payload.longitude,
-            day_master=translate_pillar(saju_res["pillars"]["day"]), result_json=res_data
+            user_id=payload.user_id,
+            birth_date=payload.birth_date,
+            birth_time=payload.birth_time,
+            timezone=payload.timezone,
+            longitude=payload.longitude,
+            day_master=translate_pillar(saju_res["pillars"]["day"]),
+            result_json=res_data
         )
         db.add(new_record)
         db.commit()

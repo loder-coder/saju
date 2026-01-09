@@ -35,32 +35,59 @@ VISUAL_KEYWORDS = {
 
 
 def get_element(char: str) -> str:
+    """천간/지지 글자를 받아 오행(Wood, Fire 등)을 반환"""
     return FIVE_ELEMENTS.get(char, "Unknown")
 
 
 def analyze_elements(saju_dict: dict):
+    """사주 팔자(4기둥)에서 오행 개수를 세어 반환"""
     elements = []
+    # saju_dict["year"] 등은 "甲子" 처럼 2글자 문자열임
     for pillar in ["year", "month", "day", "time"]:
-        elements.append(get_element(saju_dict[pillar][0]))
-        elements.append(get_element(saju_dict[pillar][1]))
+        if pillar in saju_dict:
+            gan = saju_dict[pillar][0]  # 천간
+            zhi = saju_dict[pillar][1]  # 지지
+            elements.append(get_element(gan))
+            elements.append(get_element(zhi))
+
     counts = Counter(elements)
     result = {"Wood": 0, "Fire": 0, "Earth": 0, "Metal": 0, "Water": 0}
     result.update(counts)
     return result
 
 
-def calculate_saju(lunar_year, lunar_month, lunar_day, hour, minute):
+def calculate_saju(year, month, day, hour, minute):
     """
-    만세력 계산 핵심 함수 (이게 없어서 에러가 났음)
+    만세력 계산 핵심 함수
+
+    [변경 사항]
+    기존에는 Lunar(음력) 객체를 생성했으나, '윤달' 여부를 파라미터로 받지 않아 정확도가 떨어질 수 있음.
+    lunar_service에서 이미 '진태양시(Apparent Solar Time)'로 보정된 양력(Solar) 시간을 구했으므로,
+    이를 이용해 Solar 객체로부터 사주를 뽑는 것이 가장 정확하고 안전함.
+
+    :param year: 보정된 양력 연도 (lunar['solar']['year'])
+    :param month: 보정된 양력 월 (lunar['solar']['month'])
+    :param day: 보정된 양력 일 (lunar['solar']['day'])
+    :param hour: 보정된 양력 시 (lunar['solar']['hour'])
+    :param minute: 보정된 양력 분 (lunar['solar']['minute'])
     """
-    lunar = Lunar.fromYmdHms(lunar_year, lunar_month, lunar_day, hour, minute, 0)
+    # 1. 보정된 양력 시간으로 Solar 객체 생성 (이게 만세력 기준이 됨)
+    solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
+
+    # 2. Solar -> Lunar(절기 포함) 변환
+    # Solar 객체에서 getLunar()를 호출하면 절기와 윤달이 자동 계산된 Lunar 객체를 얻음
+    lunar = solar.getLunar()
+
+    # 3. 사주 팔자 추출
     eight = lunar.getEightChar()
+
     saju = {
         "year": eight.getYearGan() + eight.getYearZhi(),
         "month": eight.getMonthGan() + eight.getMonthZhi(),
         "day": eight.getDayGan() + eight.getDayZhi(),
         "time": eight.getTimeGan() + eight.getTimeZhi()
     }
+
     return {"pillars": saju, "elements": analyze_elements(saju)}
 
 
@@ -68,19 +95,21 @@ def get_fortune_by_period(user_day_gan: str, period: str):
     """
     기간별 운세 로직
     period: 'daily', 'weekly', 'monthly', 'yearly'
+    user_day_gan: 사용자의 일간 (예: '甲')
     """
     now = datetime.now()
     user_elm = get_element(user_day_gan)
 
     # 1. 비교 대상 날짜/연도 설정
     if period == 'yearly':
+        # 입춘 기준 대략적 처리 (정확한 절입시간 계산은 복잡하므로 2/4일 고정)
         target_solar = Solar.fromYmd(now.year, 2, 4)
         period_name = f"{now.year} Flow"
     elif period == 'monthly':
         target_solar = Solar.fromYmd(now.year, now.month, 15)
         period_name = f"{now.strftime('%B')} Flow"
     elif period == 'weekly':
-        target_solar = Solar.fromYmd(now.year, now.month, now.day)  # 주간은 일단 오늘 기준으로
+        target_solar = Solar.fromYmd(now.year, now.month, now.day)  # 주간은 오늘 기준
         period_name = "This Week's Flow"
     else:  # daily
         target_solar = Solar.fromYmd(now.year, now.month, now.day)
@@ -104,7 +133,7 @@ def get_fortune_by_period(user_day_gan: str, period: str):
     score_map = {"Wealth": 92, "Support": 88, "Expression": 85, "Friend": 75, "Career": 65}
     score = score_map.get(relation, 70)
 
-    # 날짜 기반 랜덤성 추가
+    # 날짜 기반 랜덤성 추가 (매일/매년 조금씩 다르게)
     date_seed = (now.year + now.month + now.day) % 10
     final_score = min(100, score + date_seed - 5)
 
