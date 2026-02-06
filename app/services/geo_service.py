@@ -10,7 +10,7 @@ load_dotenv()
 
 class GeoService:
     def __init__(self):
-        # Railway 환경변수 또는 .env에서 키를 가져옴
+        # Koyeb 환경변수 또는 .env에서 키를 가져옴
         self.api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         self.client = None
 
