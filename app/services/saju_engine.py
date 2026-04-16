@@ -1,8 +1,8 @@
 from lunar_python import Lunar, Solar
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# 오행 및 십성 매핑 (영어)
+# 오행 매핑
 FIVE_ELEMENTS = {
     "甲": "Wood", "乙": "Wood", "丙": "Fire", "丁": "Fire", "戊": "Earth",
     "己": "Earth", "庚": "Metal", "辛": "Metal", "壬": "Water", "癸": "Water",
@@ -24,68 +24,108 @@ RELATIONS = {
     ("Water", "Earth"): "Career", ("Water", "Metal"): "Support",
 }
 
-# 이미지 생성을 위한 비주얼 키워드 매핑
+# Flutter: SajuModel.rhythmKeyword
+RHYTHM_KEYWORDS = {
+    "Expression": "Creative",
+    "Support": "Restorative",
+    "Wealth": "Productive",
+    "Friend": "Connected",
+    "Career": "Focused",
+}
+
+ARCHETYPES = {
+    "Wood": "The Pioneer",
+    "Fire": "The Spark",
+    "Earth": "The Anchor",
+    "Metal": "The Architect",
+    "Water": "The Voyager",
+}
+
 VISUAL_KEYWORDS = {
-    "Friend": "forest gathering, harmony, mirror reflection, twin souls, mystical teal light",
-    "Expression": "blooming flowers, creative splash, phoenix rising, vibrant art, dynamic motion",
-    "Wealth": "golden coins, treasure chest, luxurious palace, overflowing harvest, golden light",
-    "Career": "tall mountain peak, iron throne, structured geometry, chess board, blue icy focus",
-    "Support": "ancient library, cozy shelter, mother earth, flowing river, warm lantern light"
+    "Friend": "balanced symmetry, connected network, soft teal light, mirrored surfaces, open gathering",
+    "Expression": "creative studio, bold color splash, dynamic motion, vivid paint, expressive energy",
+    "Wealth": "golden architecture, structured abundance, warm amber light, overflowing harvest, minimal luxury",
+    "Career": "mountain ridge, geometric precision, cool blue steel, focused intensity, deliberate lines",
+    "Support": "quiet library, deep roots, calm water, soft morning light, earthy textures",
+}
+
+PERIOD_ADVICE = {
+    "daily": {
+        "Wealth": "Execution energy is high today. Tackle a task you've been deferring — momentum is on your side.",
+        "Support": "Absorption mode is active. Rest, reflect, and let new information settle. Learning sticks fast.",
+        "Expression": "Your output flows naturally today. Share ideas without second-guessing. Authenticity lands well.",
+        "Friend": "Social alignment is strong. Collaboration and honest conversation move faster than usual.",
+        "Career": "Friction signals growth. Stay disciplined when things feel resistant — the resistance is productive.",
+    },
+    "weekly": {
+        "Wealth": "This week rewards decisive action. Set one concrete goal and execute without over-planning.",
+        "Support": "Invest in learning and in relationships that replenish you. Input before output.",
+        "Expression": "Lead with your ideas this week. Creative output lands better than usual — ship it.",
+        "Friend": "Peer energy aligns with yours. Group efforts and shared goals move fast.",
+        "Career": "Challenges this week are calibrating you. Embrace the pressure and tighten your systems.",
+    },
+    "monthly": {
+        "Wealth": "This month's theme is results. Convert accumulated plans into tangible deliverables.",
+        "Support": "A restoration phase. Prioritize what sustains you — energy in before energy out.",
+        "Expression": "Your authentic voice carries extra weight this month. Visibility is your edge.",
+        "Friend": "Community and collaboration define this month. Build bridges, not just outcomes.",
+        "Career": "This month challenges your structure. Refine your processes under pressure.",
+    },
+    "yearly": {
+        "Wealth": "This year rewards builders. Tangible, real-world output defines your growth arc.",
+        "Support": "A year of deepening foundations — mentors, deep learning, and quiet progress compound.",
+        "Expression": "Your year of voice and visibility. Show up, share your perspective, and iterate.",
+        "Friend": "A year to invest in relationships and shared missions. Who you build with matters.",
+        "Career": "Growth through sustained challenge defines this year. Consistency beats intensity.",
+    },
+    "life": {
+        "Wealth": "You're wired to produce and build. Your core energy converts vision into tangible reality — the builder archetype at its peak.",
+        "Support": "Your deepest strength is absorption, wisdom, and being the foundation others build on. You empower from behind the scenes.",
+        "Expression": "Your life force peaks when you create and share. Expression isn't optional for you — it's oxygen.",
+        "Friend": "You thrive in resonance. Your deepest energy is relational and collaborative — find your tribe.",
+        "Career": "You grow through challenge and mastery. Tension isn't a problem to solve — it's your engine.",
+    },
+}
+
+YEAR_DESCRIPTIONS = {
+    "Wealth": "A year of grounded execution. Your elemental energy creates momentum for tangible, lasting results. What you build now compounds quietly.",
+    "Support": "A year of deepening roots. Invest in learning, mentorship, and relationships that replenish you. Quiet progress compounds invisibly.",
+    "Expression": "A year of visibility and voice. Your natural inclination to create and share reaches its peak cycle. Show up consistently.",
+    "Friend": "A year of alignment and collaboration. The people you invest in now will define your next chapter. Build with intention.",
+    "Career": "A year of refinement under pressure. Challenges sharpen your edge — stay consistent. The friction is calibrating you.",
 }
 
 
 def get_element(char: str) -> str:
-    """천간/지지 글자를 받아 오행(Wood, Fire 등)을 반환"""
     return FIVE_ELEMENTS.get(char, "Unknown")
 
 
 def analyze_elements(saju_dict: dict):
-    """사주 팔자(4기둥)에서 오행 개수를 세어 반환"""
     elements = []
-    # saju_dict["year"] 등은 "甲子" 처럼 2글자 문자열임
     for pillar in ["year", "month", "day", "time"]:
         if pillar in saju_dict:
-            gan = saju_dict[pillar][0]  # 천간
-            zhi = saju_dict[pillar][1]  # 지지
-            elements.append(get_element(gan))
-            elements.append(get_element(zhi))
-
+            elements.append(get_element(saju_dict[pillar][0]))
+            elements.append(get_element(saju_dict[pillar][1]))
     counts = Counter(elements)
     result = {"Wood": 0, "Fire": 0, "Earth": 0, "Metal": 0, "Water": 0}
     result.update(counts)
     return result
 
 
+def get_dominant_element(elements: dict) -> str:
+    return max(elements, key=elements.get)
+
+
 def calculate_saju(year, month, day, hour, minute):
-    """
-    만세력 계산 핵심 함수
-
-    [변경 사항]
-    기존에는 Lunar(음력) 객체를 생성했으나, '윤달' 여부를 파라미터로 받지 않아 정확도가 떨어질 수 있음.
-    lunar_service에서 이미 '진태양시(Apparent Solar Time)'로 보정된 양력(Solar) 시간을 구했으므로,
-    이를 이용해 Solar 객체로부터 사주를 뽑는 것이 가장 정확하고 안전함.
-
-    :param year: 보정된 양력 연도 (lunar['solar']['year'])
-    :param month: 보정된 양력 월 (lunar['solar']['month'])
-    :param day: 보정된 양력 일 (lunar['solar']['day'])
-    :param hour: 보정된 양력 시 (lunar['solar']['hour'])
-    :param minute: 보정된 양력 분 (lunar['solar']['minute'])
-    """
-    # 1. 보정된 양력 시간으로 Solar 객체 생성 (이게 만세력 기준이 됨)
     solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
-
-    # 2. Solar -> Lunar(절기 포함) 변환
-    # Solar 객체에서 getLunar()를 호출하면 절기와 윤달이 자동 계산된 Lunar 객체를 얻음
     lunar = solar.getLunar()
-
-    # 3. 사주 팔자 추출
     eight = lunar.getEightChar()
 
     saju = {
         "year": eight.getYearGan() + eight.getYearZhi(),
         "month": eight.getMonthGan() + eight.getMonthZhi(),
         "day": eight.getDayGan() + eight.getDayZhi(),
-        "time": eight.getTimeGan() + eight.getTimeZhi()
+        "time": eight.getTimeGan() + eight.getTimeZhi(),
     }
 
     return {"pillars": saju, "elements": analyze_elements(saju)}
@@ -93,64 +133,63 @@ def calculate_saju(year, month, day, hour, minute):
 
 def get_fortune_by_period(user_day_gan: str, period: str):
     """
-    기간별 운세 로직
-    period: 'daily', 'weekly', 'monthly', 'yearly'
-    user_day_gan: 사용자의 일간 (예: '甲')
+    period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'life'
     """
     now = datetime.now()
     user_elm = get_element(user_day_gan)
 
-    # 1. 비교 대상 날짜/연도 설정
-    if period == 'yearly':
-        # 입춘 기준 대략적 처리 (정확한 절입시간 계산은 복잡하므로 2/4일 고정)
-        target_solar = Solar.fromYmd(now.year, 2, 4)
-        period_name = f"{now.year} Flow"
-    elif period == 'monthly':
-        target_solar = Solar.fromYmd(now.year, now.month, 15)
-        period_name = f"{now.strftime('%B')} Flow"
-    elif period == 'weekly':
-        target_solar = Solar.fromYmd(now.year, now.month, now.day)  # 주간은 오늘 기준
-        period_name = "This Week's Flow"
-    else:  # daily
-        target_solar = Solar.fromYmd(now.year, now.month, now.day)
-        period_name = "Today's Flow"
-
-    lunar = target_solar.getLunar()
-    eight = lunar.getEightChar()
-
-    # 2. 비교 대상 글자 (운세의 주체)
-    if period == 'yearly':
-        target_char = eight.getYearGan()  # 세운 천간
-    elif period == 'monthly':
-        target_char = eight.getMonthGan()  # 월운 천간
-    else:
-        target_char = eight.getDayGan()  # 일운 천간
-
-    target_elm = get_element(target_char)
-    relation = RELATIONS.get((user_elm, target_elm), "Unknown")
-
-    # 3. 점수 및 키워드 생성
-    score_map = {"Wealth": 92, "Support": 88, "Expression": 85, "Friend": 75, "Career": 65}
-    score = score_map.get(relation, 70)
-
-    # 날짜 기반 랜덤성 추가 (매일/매년 조금씩 다르게)
-    date_seed = (now.year + now.month + now.day) % 10
-    final_score = min(100, score + date_seed - 5)
-
-    visual_prompt = VISUAL_KEYWORDS.get(relation, "mystical fog, mystery, stars")
-
-    advices = {
-        "Wealth": "Focus on results. Abundance is near.",
-        "Support": "A good time to learn and rest.",
-        "Expression": "Show your talent. Be bold.",
-        "Friend": "Connect with others, but stay independent.",
-        "Career": "Face challenges calmly. Discipline is key."
+    period_labels = {
+        "daily": "Today's Rhythm",
+        "weekly": "This Week's Rhythm",
+        "monthly": f"{now.strftime('%B')}'s Pattern",
+        "yearly": f"{now.year} Pattern",
+        "life": "Life Theme",
     }
+    label = period_labels.get(period, period.capitalize())
+
+    if period == "life":
+        relation = RELATIONS.get((user_elm, user_elm), "Friend")
+        score = 80
+    else:
+        if period == "yearly":
+            target_solar = Solar.fromYmd(now.year, 2, 4)
+        elif period == "monthly":
+            target_solar = Solar.fromYmd(now.year, now.month, 15)
+        else:
+            target_solar = Solar.fromYmd(now.year, now.month, now.day)
+
+        eight = target_solar.getLunar().getEightChar()
+
+        if period == "yearly":
+            target_char = eight.getYearGan()
+        elif period == "monthly":
+            target_char = eight.getMonthGan()
+        else:
+            target_char = eight.getDayGan()
+
+        target_elm = get_element(target_char)
+        relation = RELATIONS.get((user_elm, target_elm), "Friend")
+
+        score_base = {"Wealth": 92, "Support": 88, "Expression": 85, "Friend": 75, "Career": 65}
+        date_seed = (now.year + now.month + now.day) % 10
+        score = min(100, score_base.get(relation, 70) + date_seed - 5)
+
+    # 연간 테마는 항상 yearly 기준으로 계산
+    yearly_solar = Solar.fromYmd(now.year, 2, 4)
+    yearly_eight = yearly_solar.getLunar().getEightChar()
+    yearly_elm = get_element(yearly_eight.getYearGan())
+    year_relation = RELATIONS.get((user_elm, yearly_elm), "Friend")
+
+    insight = PERIOD_ADVICE.get(period, PERIOD_ADVICE["daily"]).get(relation, "Trust your process.")
+    visual = VISUAL_KEYWORDS.get(relation, "soft mist, abstract forms, cinematic light")
 
     return {
-        "period": period_name,
-        "relation_title": relation.upper(),
-        "score": final_score,
-        "advice": advices.get(relation, "Trust your intuition."),
-        "image_keyword": f"{visual_prompt}, cinematic lighting, high quality, 8k, oriental fantasy style"
+        "period": label,
+        "mode": relation.upper(),
+        "score": score,
+        "insight": insight,
+        "rhythm_keyword": RHYTHM_KEYWORDS.get(relation, "Steady"),
+        "year_theme": f"{now.year} Pattern",
+        "year_description": YEAR_DESCRIPTIONS.get(year_relation, YEAR_DESCRIPTIONS["Friend"]),
+        "image_keyword": f"{visual}, cinematic lighting, high quality, 8k",
     }

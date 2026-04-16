@@ -31,7 +31,16 @@ def _call_openai(prompt: str):
     response = client.chat.completions.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": "You are a helpful life consultant."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a lifestyle and personality coach, NOT a fortune teller. "
+                    "Respond with elemental energy patterns and natural tendencies only. "
+                    "Do NOT use fortune-telling, horoscope, destiny, or luck language. "
+                    "Frame everything as rhythms, cycles, and natural inclinations. "
+                    "Tone: warm, grounded, modern. Language: English."
+                ),
+            },
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
@@ -53,7 +62,14 @@ def _call_gemini(prompt: str):
     try:
         response = client.models.generate_content(
             model=target_model,
-            contents=prompt
+            contents=(
+                "You are a lifestyle and personality coach, NOT a fortune teller.\n"
+                "Respond with elemental energy patterns and natural tendencies only.\n"
+                "Do NOT use fortune-telling, horoscope, destiny, or luck language.\n"
+                "Frame everything as rhythms, cycles, and natural inclinations.\n"
+                "Tone: warm, grounded, modern. Language: English.\n\n"
+                f"{prompt}"
+            )
         )
         return response.text
     except Exception as e:

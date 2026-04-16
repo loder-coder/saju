@@ -24,7 +24,7 @@ class GeoService:
         else:
             print("⚠️  GOOGLE_MAPS_API_KEY is missing. Defaulting to Seoul (KST).")
 
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=2048)
     def get_location_info(self, query: str):
         """
         도시 이름(query) -> {address, lat, lng, timezone} 반환
